@@ -291,7 +291,7 @@ const DnDFlow = () => {
               onChange={handleChange}
             >
               <option value="/brs">BRS</option>
-              <option value="/brs">brs</option>
+              <option value="/hvac">HVAC</option>
             </select>
           </h1>
 
