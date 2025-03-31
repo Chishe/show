@@ -33,7 +33,7 @@ const TableComponent = ({ title, station, apiUrl }) => {
       const id = data[editIndex].id;
       try {
         const response = await axios.put(
-          `http://localhost:4000/api/kadai/${id}`,
+          `http://192.168.1.100:4000/api/kadai/${id}`,
           payload,
           { headers: { "Content-Type": "application/json" } }
         );
@@ -60,7 +60,7 @@ const TableComponent = ({ title, station, apiUrl }) => {
     } else {
       try {
         const response = await axios.post(
-          "http://localhost:4000/api/kadai",
+          "http://192.168.1.100:4000/api/kadai",
           payload,
           { headers: { "Content-Type": "application/json" } }
         );
@@ -83,7 +83,7 @@ const TableComponent = ({ title, station, apiUrl }) => {
   const handleDeleteKadai = async (id) => {
     try {
       const response = await axios.delete(
-        `http://localhost:4000/api/kadai-del/${id}`,
+        `http://192.168.1.100:4000/api/kadai-del/${id}`,
         {
           headers: {
             "Content-Type": "application/json",
@@ -274,7 +274,7 @@ const getLegendColor = (label) => {
   }
 };
 export default function KadaiList({
-  apiUrl = "http://localhost:4000/api/kadai-list",
+  apiUrl = "http://192.168.1.100:4000/api/kadai-list",
   label = "Kadai List",
 }) {
   const stations = [1, 2, 3, 4, 5, 6, 7];

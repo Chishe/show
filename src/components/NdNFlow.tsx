@@ -72,8 +72,8 @@ const DnDFlow = () => {
   const fetchData = async () => {
     try {
       const [nodesResponse, edgesResponse] = await Promise.all([
-        axios.get("http://localhost:4000/api/loaded-brs-nodes"),
-        axios.get("http://localhost:4000/api/loaded-brs-edges"),
+        axios.get("http://192.168.1.100:4000/api/loaded-brs-nodes"),
+        axios.get("http://192.168.1.100:4000/api/loaded-brs-edges"),
       ]);
 
       setNodes(
@@ -149,7 +149,7 @@ const DnDFlow = () => {
       setNodes((nds) => [...nds, newNode]);
 
       try {
-        await axios.post("http://localhost:4000/api/brs-nodes", {
+        await axios.post("http://192.168.1.100:4000/api/brs-nodes", {
           label: `${type} Node`,
           x: position.x,
           y: position.y,
@@ -173,7 +173,7 @@ const DnDFlow = () => {
       setEdges((eds) => addEdge(params, eds));
 
       axios
-        .post("http://localhost:4000/api/brs-edges", {
+        .post("http://192.168.1.100:4000/api/brs-edges", {
           source: params.source,
           target: params.target,
         })
@@ -196,14 +196,14 @@ const DnDFlow = () => {
     const { id, position } = node;
     setNodes((nds) => nds.map((n) => (n.id === id ? { ...n, position } : n)));
     axios
-      .put(`http://localhost:4000/api/brs-nodes/${id}`, position)
+      .put(`http://192.168.1.100:4000/api/brs-nodes/${id}`, position)
       .then(() => toast.success("Node position updated!"))
       .catch((error) => toast.error("Error updating node position."));
   };
 
   const deleteNode = async (id) => {
     try {
-      await axios.delete(`http://localhost:4000/api/brs-nodes/${id}`);
+      await axios.delete(`http://192.168.1.100:4000/api/brs-nodes/${id}`);
       setNodes((nds) => nds.filter((node) => node.id !== id));
       toast.success("Node deleted successfully!");
     } catch (error) {
@@ -214,7 +214,7 @@ const DnDFlow = () => {
 
   const deleteEdge = async (id) => {
     try {
-      await axios.delete(`http://localhost:4000/api/brs-edges/${id}`);
+      await axios.delete(`http://192.168.1.100:4000/api/brs-edges/${id}`);
       setEdges((eds) => eds.filter((edge) => edge.id !== id));
       toast.success("Edge deleted successfully!");
     } catch (error) {
@@ -260,7 +260,7 @@ const DnDFlow = () => {
 
       try {
         await axios.put(
-          `http://localhost:4000/api/label-brs-nodes/${editingNode.id}`,
+          `http://192.168.1.100:4000/api/label-brs-nodes/${editingNode.id}`,
           {
             label: newLabel,
           }

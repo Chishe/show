@@ -14,9 +14,9 @@ const operation = () => {
                dark:[&::-webkit-scrollbar-track]:bg-[#151c34] 
                dark:[&::-webkit-scrollbar-thumb]:bg-[#aeaeb7]">
         <div><ProcessComponent /></div>
-        <div><CTIndividualProcess apiUrl="http://localhost:4000/api/individual" label="CTIndividualProcess" /></div>
-        <div><LossInProcess apiUrl="http://localhost:4000/api/loss" label="Loss In-Process" /></div>
-        <div><KadaiList apiUrl="http://localhost:4000/api/kadai-list" label="Kadai List" /></div>
+        <div><CTIndividualProcess apiUrl="http://192.168.1.100:4000/api/individual" label="CTIndividualProcess" /></div>
+        <div><LossInProcess apiUrl="http://192.168.1.100:4000/api/loss" label="Loss In-Process" /></div>
+        <div><KadaiList apiUrl="http://192.168.1.100:4000/api/kadai-list" label="Kadai List" /></div>
       </div>
     </div>
   );

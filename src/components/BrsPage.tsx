@@ -3,7 +3,7 @@ import React from "react";
 import { ReactFlowProvider } from "react-flow-renderer";
 import { DnDProvider } from "@/components/DnDContext";
 import NdNFlow from "@/components/NdNFlow";
-import Sidebar from "@/components/Sidebar";
+import Sidebars from "@/components/Sidebars";
 import { ToastContainer } from "react-toastify";
 
 const BrsPage = () => {
@@ -12,7 +12,7 @@ const BrsPage = () => {
       <DnDProvider>
         <div className="flex">
           <NdNFlow />
-          <Sidebar />
+          <Sidebars />
         </div>
         <ToastContainer />
       </DnDProvider>

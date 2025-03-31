@@ -18,12 +18,10 @@ import { useDnD } from "@/components/DnDContext";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Link from 'next/link';
-
 const nodeDefaults = {
   sourcePosition: Position.Right,
   targetPosition: Position.Left,
   style: {
-    backgroundColor: "#41d4a8",
     border: "none",
     borderRadius: "8px",
     width: "100px",
@@ -71,41 +69,60 @@ const DnDFlow = () => {
 
   const fetchData = async () => {
     try {
-      const [nodesResponse, edgesResponse] = await Promise.all([
-        axios.get("http://localhost:4000/api/loaded-hvac-nodes"),
-        axios.get("http://localhost:4000/api/loaded-hvac-edges"),
+      const [nodesResponse, edgesResponse, valuesResponse] = await Promise.all([
+        axios.get("http://192.168.1.100:4000/api/loaded-hvac-nodes"),
+        axios.get("http://192.168.1.100:4000/api/loaded-hvac-edges"),
+        axios.get("http://192.168.1.100:4000/api/hvac-values"),
       ]);
-
+  
+      const valuesMap = valuesResponse.data.reduce((acc, item) => {
+        acc[item.label] = item;
+        return acc;
+      }, {});
+  
       setNodes(
-        nodesResponse.data.map((node) => ({
-          id: node.id.toString(),
-          type: node.type,
-          data: {
-            label: (
-              <div className="">
-                <div className="bg-amber-300 rounded-t-sm mt-[-3px] w-full">{node.label}</div>
-                <div className="nowrap-text bg-emerald-200 rounded-b-sm w-full">
-                {node.Or || "0%"} | {node.Defect || 0}
+        nodesResponse.data.map((node) => {
+          const nodeData = valuesMap[node.label] || {};
+          let backgroundColor = "#41d4a8"; 
+  
+          if (nodeData.value !== undefined) {
+            if (nodeData.value > nodeData.max) {
+              backgroundColor = "#00FF00"; 
+            } else if (nodeData.value < nodeData.min) {
+              backgroundColor = "#DC143C";
+            }
+          }
+  
+          return {
+            id: node.id.toString(),
+            type: node.type,
+            data: {
+              label: (
+                <div>
+                  <div className="bg-[#4B0082] text-white rounded-t-sm mt-[-3px] w-full">{node.label}</div>
+                  <div className="nowrap-text bg-emerald-200 rounded-b-sm w-full">
+                    {node.Or || "0%"} | {node.Defect || 0}
+                  </div>
+                  <div className="hover-container mt-2">
+                    <a
+                      href="https://www.tsdmcd.com/dekidaka"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover-link text-white bg-rose-700 hover:bg-rose-900 rounded-sm text-[8px] p-1"
+                    >
+                      MORE INFO..
+                    </a>
+                  </div>
                 </div>
-                <div className="hover-container mt-2">
-                  <a
-                    href="https://www.tsdmcd.com/dekidaka"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover-link text-white bg-rose-700 hover:bg-rose-900 rounded-sm text-[8px] p-1"
-                  >
-                    MORE INFO..
-                  </a>
-                </div>
-              </div>
-            ),
-          },
-          position: { x: node.x, y: node.y },
-          style: { backgroundColor: node.backgroundcolor || "#41d4a8" },
-          ...nodeDefaults,
-        }))
+              ),
+            },
+            position: { x: node.x, y: node.y },
+            ...nodeDefaults,
+            style: { ...nodeDefaults.style, backgroundColor }, 
+          };
+        })
       );
-
+  
       setEdges(
         edgesResponse.data.map((edge) => ({
           id: edge.id.toString(),
@@ -113,17 +130,18 @@ const DnDFlow = () => {
           target: edge.target,
         }))
       );
-
+  
       toast.success("Nodes & Edges loaded successfully!");
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Error loading nodes or edges.");
     }
   };
-
+  
   useEffect(() => {
     fetchData();
   }, []);
+
 
   const onDrop = useCallback(
     async (event) => {
@@ -147,7 +165,7 @@ const DnDFlow = () => {
       setNodes((nds) => [...nds, newNode]);
 
       try {
-        await axios.post("http://localhost:4000/api/hvac-nodes", {
+        await axios.post("http://192.168.1.100:4000/api/hvac-nodes", {
           label: `${type} Node`,
           x: position.x,
           y: position.y,
@@ -171,7 +189,7 @@ const DnDFlow = () => {
       setEdges((eds) => addEdge(params, eds));
 
       axios
-        .post("http://localhost:4000/api/hvac-edges", {
+        .post("http://192.168.1.100:4000/api/hvac-edges", {
           source: params.source,
           target: params.target,
         })
@@ -194,14 +212,14 @@ const DnDFlow = () => {
     const { id, position } = node;
     setNodes((nds) => nds.map((n) => (n.id === id ? { ...n, position } : n)));
     axios
-      .put(`http://localhost:4000/api/hvac-nodes/${id}`, position)
+      .put(`http://192.168.1.100:4000/api/hvac-nodes/${id}`, position)
       .then(() => toast.success("Node position updated!"))
       .catch((error) => toast.error("Error updating node position."));
   };
 
   const deleteNode = async (id) => {
     try {
-      await axios.delete(`http://localhost:4000/api/hvac-nodes/${id}`);
+      await axios.delete(`http://192.168.1.100:4000/api/hvac-nodes/${id}`);
       setNodes((nds) => nds.filter((node) => node.id !== id));
       toast.success("Node deleted successfully!");
     } catch (error) {
@@ -212,7 +230,7 @@ const DnDFlow = () => {
 
   const deleteEdge = async (id) => {
     try {
-      await axios.delete(`http://localhost:4000/api/hvac-edges/${id}`);
+      await axios.delete(`http://192.168.1.100:4000/api/hvac-edges/${id}`);
       setEdges((eds) => eds.filter((edge) => edge.id !== id));
       toast.success("Edge deleted successfully!");
     } catch (error) {
@@ -258,12 +276,13 @@ const DnDFlow = () => {
 
       try {
         await axios.put(
-          `http://localhost:4000/api/label-hvac-nodes/${editingNode.id}`,
+          `http://192.168.1.100:4000/api/label-hvac-nodes/${editingNode.id}`,
           {
             label: newLabel,
           }
         );
         toast.success("Label updated successfully!");
+        window.location.reload();
         setEditingNode(null);
       } catch (error) {
         console.error("Error updating label:", error);
@@ -282,18 +301,18 @@ const DnDFlow = () => {
         style={{ backgroundColor: "#151c34" }}
       >
         <div className="w-full h-full rounded-lg overflow-hidden">
-          
-        <h1 className="text-white text-2xl font-bold p-4 bg-[#586f97]">
-      Production Status
-      <select
-        className="ml-4 p-2 rounded bg-white text-black"
-        onChange={handleChange} 
-      >
-        <option value="/hvac">HVAC</option>
-        <option value="/brs">BRS</option>
-      </select>
-    </h1>
 
+          <h1 className="text-white text-2xl font-bold p-4 bg-[#586f97]">
+            Production Status
+            <select
+              className="ml-4 p-2 rounded bg-white text-black"
+              onChange={handleChange}
+            >
+              <option value="/hvac">HVAC</option>
+              <option value="/brs">BRS</option>
+            </select>
+          </h1>
+     
           <hr className="border-t-2 border-[#182039]" />
           <ReactFlow
             nodes={nodes}
