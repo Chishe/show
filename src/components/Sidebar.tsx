@@ -96,11 +96,16 @@ const NodesForm = ({ closeModal }) => {
   return (
     <div className="p-4">
       <Dialog open={true} onOpenChange={closeModal}>
-        <DialogContent className="bg-white rounded-lg p-6 max-w-4xl w-full">
+        <DialogContent className="bg-[#182039] border-none text-white rounded-lg p-6 max-w-4xl w-full text-center">
           <DialogTitle>Manage Nodes</DialogTitle>
-          <div className="overflow-y-auto max-h-[200px]">
+          <div className="overflow-y-auto max-h-[200px]
+               [&::-webkit-scrollbar]:w-1 
+               [&::-webkit-scrollbar-track]:bg-gray-100 
+               [&::-webkit-scrollbar-thumb]:bg-gray-300 
+               dark:[&::-webkit-scrollbar-track]:bg-[#151c34] 
+               dark:[&::-webkit-scrollbar-thumb]:bg-[#aeaeb7]">
             <table className="w-full mt-4 border">
-              <thead className="sticky top-0 bg-indigo-200">
+              <thead className="sticky top-0 bg-indigo-200 text-black">
                 <tr>
                   <th className="border p-2">Label</th>
                   <th className="border p-2">Value</th>
@@ -116,7 +121,7 @@ const NodesForm = ({ closeModal }) => {
                     <td className="border p-2">{node.value}</td>
                     <td className="border p-2">{node.min}</td>
                     <td className="border p-2">{node.max}</td>
-                    <td className="border p-2 flex space-x-2">
+                    <td className="border p-2 flex space-x-2 justify-center">
                       <button onClick={() => handleEdit(node)} className="bg-yellow-500 text-white p-2 rounded">
                         <FaEdit />
                       </button>
@@ -162,7 +167,7 @@ const Sidebar = () => {
   return (
     <div className="sidebar w-full">
       <div
-        className="node cursor-pointer p-2 mb-2 bg-[#41d4a8] rounded-md hover:bg-[#36b093] mt-25"
+        className="node cursor-pointer p-2 mb-2 bg-[#41d4a8] rounded-md hover:bg-[#36b093] mt-45"
         draggable
         onDragStart={(event) => onDragStart(event, "input")}
       >

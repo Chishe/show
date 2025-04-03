@@ -70,7 +70,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   }
 
   try {
-    const result = await db.query('DELETE FROM nodes_hvac WHERE id = $1 RETURNING *', [id]);
+    const result = await db.query('DELETE FROM nodes_brs WHERE id = $1 RETURNING *', [id]);
 
     if (result.rows.length === 0) {
       return new NextResponse(JSON.stringify({ message: 'Node not found' }), {

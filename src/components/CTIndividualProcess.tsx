@@ -29,11 +29,11 @@ const TableComponent = ({ title, station, apiUrl }) => {
         }));
 
         setData(formattedData);
-        toast.success(`Station ${station} data loaded successfully`, {
-          autoClose: 2000,
-        });
+        // toast.success(`Station ${station} data loaded successfully`, {
+        //   autoClose: 2000,
+        // });
       } catch (error) {
-        toast.error("Failed to load data", { autoClose: 4000 });
+        // toast.error("Failed to load data", { autoClose: 4000 });
         console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
@@ -78,12 +78,12 @@ const TableComponent = ({ title, station, apiUrl }) => {
           View All
         </DialogTrigger>
 
-        <DialogContent>
+        <DialogContent className="bg-[#182039] text-white border-none">
           <h3 className="text-lg font-semibold text-center">{title}</h3>
           <div className="overflow-auto max-h-96">
             <table className="w-full border-collapse border mt-3">
               <thead>
-                <tr className="bg-amber-300">
+                <tr className="bg-amber-300 text-black">
                   <th className="border p-2">Date & Time</th>
                   <th className="border p-2">Video</th>
                 </tr>

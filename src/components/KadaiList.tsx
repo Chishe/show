@@ -128,27 +128,24 @@ const TableComponent = ({ title, station, apiUrl }) => {
             ...item,
             due: formatDate(item.due),
           }));
-
+  
         const formattedData = filteredData.map((item) => ({
           ...item,
           id: item.id || Math.random(),
         }));
-
+  
         setData(formattedData);
-        toast.success(`Station ${station} data loaded successfully`, {
-          autoClose: 2000,
-        });
       } catch (error) {
-        toast.error("Failed to load data", { autoClose: 4000 });
         console.error("Error fetching data:", error);
       } finally {
         setIsLoading(false);
       }
     };
+    const interval = setInterval(fetchData, 1000);
 
-    fetchData();
+    return () => clearInterval(interval);
   }, [station, apiUrl]);
-
+  
   const visibleData = Array.from(
     { length: 4 },
     (_, i) => data[i] ?? { item: "", due: "" }
@@ -182,7 +179,7 @@ const TableComponent = ({ title, station, apiUrl }) => {
           View All
         </DialogTrigger>
 
-        <DialogContent>
+        <DialogContent className="bg-[#182039] text-white border-none">
           <VisuallyHidden>
             <DialogTitle>{title}</DialogTitle>
           </VisuallyHidden>
@@ -198,7 +195,6 @@ const TableComponent = ({ title, station, apiUrl }) => {
               onClick={handleAddOrUpdate}
               className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-sm"
             >
-              {/* Conditionally render icon and text */}
               {editIndex !== null ? (
                 <>
                   <FaEdit className="inline" /> Update
@@ -214,13 +210,13 @@ const TableComponent = ({ title, station, apiUrl }) => {
           <div className="overflow-auto max-h-96">
             <table className="w-full border-collapse border mt-3">
               <thead>
-                <tr className="bg-rose-300">
+                <tr className="bg-rose-300 text-black">
                   <th className="border p-2">Item</th>
                   <th className="border p-2">Due</th>
                   <th className="border p-2">Action</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="text-black">
                 {data.map((row) =>
                   row && row.id ? (
                     <tr key={row.id} className="border text-center">

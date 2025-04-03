@@ -1,9 +1,21 @@
 import pool from '@/lib/db';
+import { NextRequest } from 'next/server';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const result = await pool.query("SELECT * FROM individual ORDER BY id ASC");
-    
+    const url = new URL(request.url);
+    const dateTime = url.searchParams.get('datetime'); 
+
+    let query = "SELECT * FROM individual ORDER BY id ASC";
+    let values: string[] = []; 
+
+    if (dateTime) {
+      query = "SELECT * FROM individual WHERE date <= $1 ORDER BY id ASC"; 
+      values = [dateTime]; 
+    }
+
+    const result = await pool.query(query, values);
+
     return new Response(JSON.stringify(result.rows), {
       headers: {
         'Content-Type': 'application/json',

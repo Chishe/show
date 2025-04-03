@@ -74,25 +74,25 @@ const DnDFlow = () => {
         axios.get("http://192.168.1.100:4000/api/loaded-hvac-edges"),
         axios.get("http://192.168.1.100:4000/api/hvac-values"),
       ]);
-  
+
       const valuesMap = valuesResponse.data.reduce((acc, item) => {
         acc[item.label] = item;
         return acc;
       }, {});
-  
+
       setNodes(
         nodesResponse.data.map((node) => {
           const nodeData = valuesMap[node.label] || {};
-          let backgroundColor = "#41d4a8"; 
-  
+          let backgroundColor = "#41d4a8";
+
           if (nodeData.value !== undefined) {
             if (nodeData.value > nodeData.max) {
-              backgroundColor = "#00FF00"; 
+              backgroundColor = "#00FF00";
             } else if (nodeData.value < nodeData.min) {
               backgroundColor = "#DC143C";
             }
           }
-  
+
           return {
             id: node.id.toString(),
             type: node.type,
@@ -118,11 +118,11 @@ const DnDFlow = () => {
             },
             position: { x: node.x, y: node.y },
             ...nodeDefaults,
-            style: { ...nodeDefaults.style, backgroundColor }, 
+            style: { ...nodeDefaults.style, backgroundColor },
           };
         })
       );
-  
+
       setEdges(
         edgesResponse.data.map((edge) => ({
           id: edge.id.toString(),
@@ -130,17 +130,43 @@ const DnDFlow = () => {
           target: edge.target,
         }))
       );
-  
+
       toast.success("Nodes & Edges loaded successfully!");
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Error loading nodes or edges.");
     }
   };
-  
+
+  useEffect(() => {
+    const updateHandlesColor = () => {
+      if (!reactFlowWrapper.current) return;
+
+      nodes.forEach((node) => {
+        if (!node.style) return;
+
+        const color = node.style.backgroundColor || "#41d4a8";
+
+        const handleLeft = reactFlowWrapper.current.querySelector(`.react-flow__handle-left[data-nodeid="${node.id}"]`);
+        const handleRight = reactFlowWrapper.current.querySelector(`.react-flow__handle-right[data-nodeid="${node.id}"]`);
+
+        if (handleLeft) handleLeft.style.backgroundColor = color;
+        if (handleRight) handleRight.style.backgroundColor = color;
+
+        console.log(`Node ${node.id} handle color set to: ${color}`);
+      });
+    };
+
+    if (nodes.length > 0) {
+      updateHandlesColor();
+    }
+  }, [nodes]);
+
+
   useEffect(() => {
     fetchData();
   }, []);
+
 
 
   const onDrop = useCallback(
@@ -292,9 +318,9 @@ const DnDFlow = () => {
   };
 
   return (
-    <div className="dndflow w-full min-h-screen flex">
+    <div className="dndflow w-full">
       <div
-        className="reactflow-wrapper w-full flex-grow h-full p-4 pt-28"
+        className="reactflow-wrapper w-full h-screen p-4"
         ref={reactFlowWrapper}
         onDrop={onDrop}
         onDragOver={onDragOver}
@@ -312,7 +338,7 @@ const DnDFlow = () => {
               <option value="/brs">BRS</option>
             </select>
           </h1>
-     
+
           <hr className="border-t-2 border-[#182039]" />
           <ReactFlow
             nodes={nodes}
@@ -340,8 +366,8 @@ const DnDFlow = () => {
       </div>
 
       {editingNode && (
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 p-6 bg-white rounded-lg shadow-lg z-10 max-w-md">
-          <h3 className="text-2xl font-semibold text-center text-gray-700 mb-4">
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 p-6 bg-[#182039] text-white rounded-sm shadow-lg z-10 max-w-md">
+          <h3 className="text-2xl font-semibold text-center text-white mb-4">
             Edit Node Label
           </h3>
 

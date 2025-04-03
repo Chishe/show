@@ -8,6 +8,7 @@
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
+
 :root {
   --tw-ring-color: rgb(59 130 246 / 0.5);
   --radius: 0.625rem;
@@ -157,18 +158,21 @@ body {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
 }
-.touch-flow{
+
+.touch-flow {
   border: none;
 }
+
 .react-flow.touch-flow .react-flow__handle {
   width: 20px;
   height: 20px;
-  background-color: #41d4a8;
   border: none;
+  background-color: #41d4a8;
 }
 
 .touch-flow .react-flow__handle-right {
@@ -181,5 +185,5 @@ body {
 
 .custom-controls {
   position: absolute;
-  top: 50%;
+  top: 70%;
 }

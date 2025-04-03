@@ -78,12 +78,12 @@ const TableComponent = ({ title, station, apiUrl }) => {
           View All
         </DialogTrigger>
 
-        <DialogContent>
+        <DialogContent className="bg-[#182039] text-white border-none">
           <h3 className="text-lg font-semibold text-center">{title}</h3>
           <div className="overflow-auto max-h-96">
             <table className="w-full border-collapse border mt-3">
               <thead>
-                <tr className="bg-fuchsia-300">
+                <tr className="bg-fuchsia-300 text-black">
                   <th className="border p-2">Date & Time</th>
                   <th className="border p-2">Loss</th>
                 </tr>

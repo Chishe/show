@@ -17,13 +17,13 @@ import axios from "axios";
 import { useDnD } from "@/components/DnDContext";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Link from "next/link";
-
+import Link from 'next/link';
+import { DefaultContext } from "react-icons/lib";
 const nodeDefaults = {
   sourcePosition: Position.Right,
   targetPosition: Position.Left,
   style: {
-    backgroundColor: "#41d4a8",
+    Background: "#41d4a8",
     border: "none",
     borderRadius: "8px",
     width: "100px",
@@ -71,41 +71,59 @@ const DnDFlow = () => {
 
   const fetchData = async () => {
     try {
-      const [nodesResponse, edgesResponse] = await Promise.all([
+      const [nodesResponse, edgesResponse, valuesResponse] = await Promise.all([
         axios.get("http://192.168.1.100:4000/api/loaded-brs-nodes"),
         axios.get("http://192.168.1.100:4000/api/loaded-brs-edges"),
+        axios.get("http://192.168.1.100:4000/api/status-stock"),
       ]);
 
+      const valuesMap = valuesResponse.data.reduce((acc, item) => {
+        acc[item.label] = item;
+        return acc;
+      }, {});
+
       setNodes(
-        nodesResponse.data.map((node) => ({
-          id: node.id.toString(),
-          type: node.type,
-          data: {
-            label: (
-              <div className="">
-                <div className="bg-[#4B0082] text-white rounded-t-sm mt-[-3px] w-full">
-                  {node.label}
+        nodesResponse.data.map((node) => {
+          const nodeData = valuesMap[node.label] || {};
+          let backgroundColor = "#41d4a8";
+          let handleRightColor = "#41d4a8";
+          if (nodeData.result !== undefined) {
+            if (nodeData.result == 0) {
+              handleRightColor = "#00FF00";
+            } else if (nodeData.result == 1) {
+              handleRightColor = "#DC143C";
+            }
+          }
+
+          return {
+            id: node.id.toString(),
+            type: node.type,
+            data: {
+              label: (
+                <div>
+                  <div className="bg-[#4B0082] text-white rounded-t-sm mt-[-3px] w-full">{node.label}</div>
+                  <div className="nowrap-text bg-emerald-200 rounded-b-sm w-full">
+                    {node.Or || "0%"} | {node.Defect || 0}
+                  </div>
+                  <div className="hover-container mt-2">
+                    <a
+                      href="https://www.tsdmcd.com/dekidaka"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover-link text-white bg-rose-700 hover:bg-rose-900 rounded-sm text-[8px] p-1"
+                    >
+                      MORE INFO..
+                    </a>
+                  </div>
                 </div>
-                <div className="nowrap-text bg-emerald-200 rounded-b-sm w-full">
-                  {node.Or || "0%"} | {node.Defect || 0}
-                </div>
-                <div className="hover-container mt-2">
-                  <a
-                    href="https://www.tsdmcd.com/dekidaka"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="hover-link text-white bg-rose-700 hover:bg-rose-900 rounded-sm text-[8px] p-1"
-                  >
-                    MORE INFO..
-                  </a>
-                </div>
-              </div>
-            ),
-          },
-          position: { x: node.x, y: node.y },
-          style: { backgroundColor: node.backgroundcolor || "#41d4a8" },
-          ...nodeDefaults,
-        }))
+              ),
+            },
+            position: { x: node.x, y: node.y },
+            ...nodeDefaults,
+            style: { ...nodeDefaults.style, backgroundColor },
+            handleRightColor,
+          };
+        })
       );
 
       setEdges(
@@ -116,7 +134,7 @@ const DnDFlow = () => {
         }))
       );
 
-      toast.success("Nodes & Edges loaded successfully!");
+      // toast.success("Nodes & Edges loaded successfully!");
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Error loading nodes or edges.");
@@ -124,8 +142,34 @@ const DnDFlow = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    const updateHandlesColor = () => {
+      if (!reactFlowWrapper.current) return;
+
+      nodes.forEach((node) => {
+        if (!node.handleRightColor) return;
+
+        const handleRight = reactFlowWrapper.current.querySelector(`.react-flow__handle-right[data-nodeid="${node.id}"]`);
+
+        if (handleRight) {
+          handleRight.style.backgroundColor = node.handleRightColor;  
+        }
+
+        console.log(`Node ${node.id} handle color set to: ${node.handleRightColor}`);
+      });
+    };
+
+    if (nodes.length > 0) {
+      updateHandlesColor();
+    }
+  }, [nodes]);
+
+  useEffect(() => {
+    fetchData(); 
+    // const intervalId = setInterval(fetchData, 1000000); 
+
+    // return () => clearInterval(intervalId); 
+  }, [fetchData]);
+
 
   const onDrop = useCallback(
     async (event) => {
@@ -266,6 +310,7 @@ const DnDFlow = () => {
           }
         );
         toast.success("Label updated successfully!");
+        window.location.reload();
         setEditingNode(null);
       } catch (error) {
         console.error("Error updating label:", error);
@@ -277,13 +322,14 @@ const DnDFlow = () => {
   return (
     <div className="dndflow w-full min-h-screen flex">
       <div
-        className="reactflow-wrapper w-full flex-grow h-full p-4 pt-28"
+        className="reactflow-wrapper w-full flex-grow p-4"
         ref={reactFlowWrapper}
         onDrop={onDrop}
         onDragOver={onDragOver}
         style={{ backgroundColor: "#151c34" }}
       >
         <div className="w-full h-full rounded-lg overflow-hidden">
+
           <h1 className="text-white text-2xl font-bold p-4 bg-[#586f97]">
             Production Status
             <select
@@ -322,8 +368,8 @@ const DnDFlow = () => {
       </div>
 
       {editingNode && (
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 p-6 bg-white rounded-lg shadow-lg z-10 max-w-md">
-          <h3 className="text-2xl font-semibold text-center text-gray-700 mb-4">
+        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 p-6 bg-[#182039] text-white rounded-sm shadow-lg z-10 max-w-md">
+          <h3 className="text-2xl font-semibold text-center text-white mb-4">
             Edit Node Label
           </h3>
 
