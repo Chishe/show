@@ -83,7 +83,7 @@ const DnDFlow = () => {
           data: {
             label: (
               <div className="">
-                <div className="bg-amber-300 rounded-t-sm mt-[-3px] w-full">
+                <div className="bg-[#4B0082] text-white rounded-t-sm mt-[-3px] w-full">
                   {node.label}
                 </div>
                 <div className="nowrap-text bg-emerald-200 rounded-b-sm w-full">
