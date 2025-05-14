@@ -25,7 +25,6 @@ export default function RootLayout({
         <Header />
         <div className="flex flex-1 h-full">
           <Aside />
-          {/* <Article /> */}
           <div className="flex-1">{children}</div>
         </div>
       </body>

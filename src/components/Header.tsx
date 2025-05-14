@@ -16,6 +16,8 @@ export default function Header() {
         return "H-VAC";
       case "/operation":
         return "Operation";
+        case "/loss":
+          return "Dekidaka & Loss Monitoring";
       default:
         return "Home";
     }
