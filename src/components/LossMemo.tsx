@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 interface LossMemoItem {
-  itemNo: number;
+  itemno: number;
   situation: string;
   problemType: string;
   factor: string;
@@ -14,59 +17,74 @@ interface LossMemoItem {
   effectiveLot: string;
 }
 
-const sampleData: LossMemoItem[] = [
-  {
-    itemNo: 1,
-    situation: "Abnormal",
-    problemType: "Quality",
-    factor: "Part Dim",
-    partNo: "TGXXXXX-XXXXX",
-    details: "Tank H. NG",
-    action: "Die Fix",
-    pic: "JMD",
-    due: "DD/MM/YYYY:HH:MM",
-    status: "Pending",
-    effectiveLot: "Lot ID",
-  },
-  {
-    itemNo: 2,
-    situation: "KAIZEN",
-    problemType: "Cost",
-    factor: "-",
-    partNo: "-",
-    details: "Improve Jig",
-    action: "Imporovement",
-    pic: "PE",
-    due: "DD/MM/YYYY:HH:MM",
-    status: "Finnish",
-    effectiveLot: "Lot ID",
-  },
-];
-
 const LossMemo: React.FC = () => {
+  const [data, setData] = useState<LossMemoItem[]>([]);
+  const [editing, setEditing] = useState<{ itemno: number; field: string } | null>(null);
+  const [editValue, setEditValue] = useState<string>("");
+
+  const fetchData = async () => {
+    try {
+      const response = await axios.get("/api/getRecords");
+      setData(response.data);
+    } catch (error) {
+      console.error("Failed to fetch records: ", error);
+      toast.error("Failed to fetch records");
+    }
+  };
+
+  const handleEdit = (itemno: number, field: keyof LossMemoItem, value: string) => {
+    setEditing({ itemno, field });
+    setEditValue(value);
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+
+    const { itemno, field } = editing;
+    try {
+      await axios.put("/api/updateRecord", {
+        itemno,
+        field,
+        value: editValue,
+      });
+      setEditing(null);
+      fetchData();
+      toast.success("Record updated successfully");
+    } catch (error) {
+      console.error("Failed to update record:", error);
+      toast.error("Failed to update record");
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   const getColorClass = (field: string, value: string) => {
     switch (field) {
       case "situation":
-        if (value === "Abnormal") return "bg-red-500 text-white rounded-lg";
-        if (value === "KAIZEN") return "bg-green-500 text-white rounded-lg";
+        if (value === "Abnormal") return "bg-red-500 text-white";
+        if (value === "KAIZEN") return "bg-green-500 text-white";
         break;
       case "problemType":
-        if (value === "Quality") return "bg-red-500 text-white rounded-lg";
-        if (value === "Cost") return "bg-green-500 text-white rounded-lg";
+        if (value === "Quality") return "bg-red-500 text-white";
+        if (value === "Cost") return "bg-green-500 text-white";
         break;
       case "factor":
-        if (value === "Part Dim") return "bg-red-500 text-white rounded-lg";
+        if (value === "Part Dim") return "bg-red-500 text-white";
         break;
       case "status":
-        if (value === "Pending") return "bg-yellow-400 text-black rounded-lg";
-        if (value === "Finnish") return "bg-green-500 text-white rounded-lg";
+        if (value === "Pending") return "bg-yellow-400 text-black";
+        if (value === "Finnish") return "bg-green-500 text-white";
         break;
     }
-    return "px-2 py-1"; // default padding
+    return "px-2 py-1";
   };
 
   return (
-    <div className="w-full bg-[#100C2A] py-4">
+    <div className="w-full bg-[#100C2A] py-4 rounded-lg">
       <div className="overflow-x-auto max-h-[80vh] w-full p-4">
         <table className="w-full table-auto border-collapse text-xs text-center">
           <thead>
@@ -85,34 +103,46 @@ const LossMemo: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {sampleData.length === 0 ? (
+            {data.length === 0 ? (
               <tr>
                 <td colSpan={11} className="text-center text-gray-500 py-4 border">
                   No data
                 </td>
               </tr>
             ) : (
-              sampleData.map((item) => (
-                <tr key={item.itemNo} className="text-center text-white">
-                  <td className="px-4 py-2 border">{item.itemNo}</td>
-                  <td className={`border ${getColorClass("situation", item.situation)}`}>
-                    {item.situation}
-                  </td>
-                  <td className={`border ${getColorClass("problemType", item.problemType)}`}>
-                    {item.problemType}
-                  </td>
-                  <td className={`border ${getColorClass("factor", item.factor)}`}>
-                    {item.factor}
-                  </td>
-                  <td className="px-2 py-1 border">{item.partNo}</td>
-                  <td className="px-2 py-1 border">{item.details}</td>
-                  <td className="px-2 py-1 border">{item.action}</td>
-                  <td className="px-2 py-1 border">{item.pic}</td>
-                  <td className="px-2 py-1 border">{item.due}</td>
-                  <td className={`border ${getColorClass("status", item.status)}`}>
-                    {item.status}
-                  </td>
-                  <td className="px-2 py-1 border">{item.effectiveLot}</td>
+              data.map((item) => (
+                <tr key={item.itemno} className="text-center text-white">
+                  {Object.entries(item).map(([field, value]) => {
+                    const isEditing = editing?.itemno === item.itemno && editing.field === field;
+                    const isEditable = field !== "itemno";
+
+                    return (
+                      <td
+                        key={field}
+                        className={`border ${getColorClass(field, String(value))}`}
+                        onClick={() =>
+                          isEditable && handleEdit(item.itemno, field as keyof LossMemoItem, String(value))
+                        }
+                      >
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onBlur={saveEdit}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") saveEdit();
+                              if (e.key === "Escape") setEditing(null);
+                            }}
+                            autoFocus
+                            className="w-full bg-black text-white border border-white px-1"
+                          />
+                        ) : (
+                          value
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             )}

@@ -27,7 +27,11 @@ type Row = {
   stockPart: string;
 };
 
-const calculateEndTime = (startTime: string, qty: string, ctTarget: string): string => {
+const calculateEndTime = (
+  startTime: string,
+  qty: string,
+  ctTarget: string
+): string => {
   if (!startTime || !qty || !ctTarget) return "";
 
   const [hourStr, minStr] = startTime.split(":");
@@ -40,10 +44,16 @@ const calculateEndTime = (startTime: string, qty: string, ctTarget: string): str
   if (isNaN(totalSeconds)) return "";
 
   const endDate = new Date(startDate.getTime() + totalSeconds * 1000);
+  const limitDate = new Date();
+  limitDate.setHours(18, 50, 0, 0); // 18:50:00
+
+  if (endDate > limitDate) return "18:50";
+
   const hh = String(endDate.getHours()).padStart(2, "0");
   const mm = String(endDate.getMinutes()).padStart(2, "0");
   return `${hh}:${mm}`;
 };
+
 
 export default function Model() {
   const [isOpen, setIsOpen] = useState(false);
@@ -61,51 +71,83 @@ export default function Model() {
   ]);
 
   const updateRow = (id: number, key: keyof Row, value: string) =>
-    setRows((rows) =>
-      rows.map((r) => {
-        if (r.id !== id) return r;
+  setRows((rows) =>
+    rows.map((r) => {
+      if (r.id !== id) return r;
 
-        const updated = { ...r, [key]: value };
+      const updated = { ...r, [key]: value };
 
-        if (
-          ["startTime", "qty", "ctTarget"].includes(key) &&
-          updated.startTime &&
-          updated.qty &&
+      if (
+        ["startTime", "qty", "ctTarget"].includes(key) &&
+        updated.startTime &&
+        updated.qty &&
+        updated.ctTarget
+      ) {
+        updated.endTime = calculateEndTime(
+          updated.startTime,
+          updated.qty,
           updated.ctTarget
-        ) {
-          updated.endTime = calculateEndTime(updated.startTime, updated.qty, updated.ctTarget);
-        }
+        );
+      }
 
-        return updated;
-      })
-    );
+      return updated;
+    })
+  );
 
-  const addRow = () =>
-    setRows((rows) => {
-      const prevRow = rows[rows.length - 1];
-      const newStartTime = prevRow.endTime || "07:35";
-      const newEndTime = calculateEndTime(newStartTime, "", "");
 
+const addRow = () =>
+  setRows((rows) => {
+    if (rows.length === 0) {
       return [
-        ...rows,
         {
           id: Date.now(),
           partNumber: "",
           model: "",
           qty: "",
           ctTarget: "",
-          startTime: newStartTime,
-          endTime: newEndTime,
+          startTime: "07:35",
+          endTime: "",
           stockPart: "",
         },
       ];
-    });
+    }
+
+    const prevRow = rows[rows.length - 1];
+    const newStartTime = prevRow.endTime || "07:35";
+
+    const [newStartHour, newStartMin] = newStartTime.split(":").map(Number);
+    const endLimit = new Date();
+    endLimit.setHours(18, 50, 0, 0);
+
+    const newStartDate = new Date();
+    newStartDate.setHours(newStartHour, newStartMin, 0, 0);
+
+    if (newStartDate >= endLimit) {
+      alert("Cannot add more rows. End time limit reached (18:50).");
+      return rows;
+    }
+
+    return [
+      ...rows,
+      {
+        id: Date.now(),
+        partNumber: "",
+        model: "",
+        qty: "",
+        ctTarget: "",
+        startTime: newStartTime,
+        endTime: "",
+        stockPart: "",
+      },
+    ];
+  });
+
 
   const deleteRow = (id: number) =>
     setRows((rows) => rows.filter((r) => r.id !== id));
 
   return (
-    <div className=" bg-[#182039] p-4">
+    <div className="w-full bg-[#465e86] p-4">
       <div className="flex items-center justify-between gap-4 w-full">
         <h1 className="text-xl font-bold text-white">Production Plan Today Status</h1>
         <button

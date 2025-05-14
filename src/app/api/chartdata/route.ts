@@ -1,41 +1,35 @@
-import { NextApiRequest, NextApiResponse } from "next";
-import { Pool } from "pg";
+import { NextResponse } from "next/server";
+import pool from "@/lib/db";
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL, // หรือ config DB
-});
+export async function GET() {
+  try {
+    const { rows } = await pool.query(
+      `SELECT 
+    r.partnumber,
+    ts.timeSlot,
+    jsonb_agg(ts.target) AS target_array,
+    jsonb_agg(ts.actual) AS actual_array
+FROM rows r
+JOIN timeSlots ts ON r.seq = ts.row_id
+WHERE ts.target IS NOT NULL 
+  AND ts.actual IS NOT NULL
+GROUP BY r.partnumber, ts.timeSlot
+ORDER BY r.partnumber, ts.timeSlot;`
+    );
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === "POST") {
-    const { rows } = req.body; // รับมาจาก frontend
+    const chartData = rows.map((row) => ({
+      partNumber: row.partnumber,
+      timeSlot: row.timeslot,
+      targetA: row.target_array,
+      actualA: row.actual_array,
+    }));
 
-    try {
-      const client = await pool.connect();
-
-      for (const row of rows) {
-        await client.query(
-          `INSERT INTO production_plan (
-            part_number, model, qty, ct_target, start_time, end_time, stock_part
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-          [
-            row.partNumber,
-            row.model,
-            parseInt(row.qty),
-            parseInt(row.ctTarget),
-            row.startTime,
-            row.endTime,
-            row.stockPart,
-          ]
-        );
-      }
-
-      client.release();
-      res.status(200).json({ success: true });
-    } catch (error) {
-      console.error("Insert error:", error);
-      res.status(500).json({ error: "Database insert failed" });
-    }
-  } else {
-    res.status(405).end();
+    return NextResponse.json(chartData);
+  } catch (err) {
+    console.error("Error fetching chart data:", err);
+    return new NextResponse(
+      JSON.stringify({ error: "Internal Server Error" }),
+      { status: 500 }
+    );
   }
 }
