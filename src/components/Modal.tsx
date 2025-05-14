@@ -105,7 +105,7 @@ export default function Model() {
     setRows((rows) => rows.filter((r) => r.id !== id));
 
   return (
-    <div className="w-full bg-[#182039] p-4">
+    <div className=" bg-[#182039] p-4">
       <div className="flex items-center justify-between gap-4 w-full">
         <h1 className="text-xl font-bold text-white">Production Plan Today Status</h1>
         <button

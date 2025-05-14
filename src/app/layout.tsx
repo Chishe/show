@@ -25,7 +25,7 @@ export default function RootLayout({
         <Header />
         <div className="flex flex-1 h-full">
           <Aside />
-          <div className="flex-1">{children}</div>
+          <div className="flex-1 overflow-auto p-2">{children}</div>
         </div>
       </body>
     </html>

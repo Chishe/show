@@ -1,7 +1,7 @@
 "use client";
-import Modal from "@/components/Modal";
+// import Modal from "@/components/Modal";
 import PlanTable from "@/components/PlanTable";
-import LossMemo from "@/components/LossMemo";
+// import LossMemo from "@/components/LossMemo";
 
 export default function Loss() {
   return (
@@ -12,9 +12,9 @@ export default function Loss() {
                [&::-webkit-scrollbar-thumb]:bg-gray-300 
                dark:[&::-webkit-scrollbar-track]:bg-[#151c34] 
                dark:[&::-webkit-scrollbar-thumb]:bg-[#aeaeb7]">
-        <Modal />
+        {/* <Modal /> */}
         <PlanTable />
-        <LossMemo />
+        {/* <LossMemo /> */}
       </div>
     </div>
   );
