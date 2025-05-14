@@ -336,7 +336,7 @@ const DnDFlow = () => {
               className="ml-4 p-2 rounded bg-white text-black"
               onChange={handleChange}
             >
-              <option value="/brs">BRS</option>
+              <option value="/">BRS</option>
               <option value="/hvac">HVAC</option>
             </select>
           </h1>

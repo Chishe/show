@@ -20,7 +20,7 @@ export const menuItems = [
   {
     icon: <GrStatusUnknown size={18} />,
     label: "Dekidaka & Loss Monitoring",
-    link: "https://www.tsdmcd.com/dekidaka",
+    link: "/loss",
   },
   { icon: separator, label: "Production Plan", link: "https://www.tsdmcd.com/dekidaka" },
   { icon: separator, label: "Part Dimension", link: "https://www.tsdmcd.com/dekidaka" },
