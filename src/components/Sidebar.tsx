@@ -23,7 +23,7 @@ const NodesForm = ({ closeModal }) => {
 
   const fetchNodes = async () => {
     try {
-      const response = await axios.get("http://192.168.1.100:4000/api/hvac-values");
+      const response = await axios.get("/api/hvac-values");
       setNodes(response.data);
     } catch (error) {
       console.error("Error fetching nodes:", error);
@@ -59,10 +59,10 @@ const NodesForm = ({ closeModal }) => {
 
     try {
       if (editId) {
-        await axios.put(`http://192.168.1.100:4000/api/form/${editId}`, formDataToSend);
+        await axios.put(`/api/form/${editId}`, formDataToSend);
         toast.success("Node updated successfully!");
       } else {
-        await axios.post("http://192.168.1.100:4000/api/form", formDataToSend);
+        await axios.post("/api/form", formDataToSend);
         toast.success("Node added successfully!");
       }
 
@@ -83,7 +83,7 @@ const NodesForm = ({ closeModal }) => {
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to delete this node?")) {
       try {
-        await axios.delete(`http://192.168.1.100:4000/api/form-del/${id}`);
+        await axios.delete(`/api/form-del/${id}`);
         toast.success("Node deleted successfully!");
         fetchNodes();
       } catch (error) {

@@ -120,7 +120,7 @@ const getLegendColor = (label) => {
 };
 
 export default function LossInProcess({
-  apiUrl = "http://192.168.1.100:4000/api/loss",
+  apiUrl = "/api/loss",
   label = "Loss In-Process",
 }) {
   const stations = [1, 2, 3, 4, 5, 6, 7];

@@ -15,14 +15,14 @@ export default function ProductionStatusCards({ type }) {
     const apiEndpoint = type === "hvac" ? "production-status-hvac" : "production-status-brs";
     const editApiEndpoint = type === "hvac" ? "edit-production-hvac" : "edit-production-brs";
     useEffect(() => {
-        fetch("http://192.168.1.100:4000/api/part-no")
+        fetch("/api/part-no")
             .then((res) => res.json())
             .then((data) => setPartNumbers(data))
             .catch((err) => console.error("Error fetching part numbers:", err));
     }, []);
 
     useEffect(() => {
-        fetch(`http://192.168.1.100:4000/api/${apiEndpoint}`)
+        fetch(`/api/${apiEndpoint}`)
             .then((res) => res.json())
             .then((data) => setData(data.slice(0, 4)))
             .catch((err) => console.error("Error fetching data:", err));
@@ -61,7 +61,7 @@ export default function ProductionStatusCards({ type }) {
         };
         console.log(updatedData);
 
-        fetch(`http://192.168.1.100:4000/api/${editApiEndpoint}/${selectedData.id}`, {
+        fetch(`/api/${editApiEndpoint}/${selectedData.id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",

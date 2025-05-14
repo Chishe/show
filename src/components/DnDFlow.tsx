@@ -70,9 +70,9 @@ const DnDFlow = () => {
   const fetchData = async () => {
     try {
       const [nodesResponse, edgesResponse, valuesResponse] = await Promise.all([
-        axios.get("http://192.168.1.100:4000/api/loaded-hvac-nodes"),
-        axios.get("http://192.168.1.100:4000/api/loaded-hvac-edges"),
-        axios.get("http://192.168.1.100:4000/api/hvac-values"),
+        axios.get("/api/loaded-hvac-nodes"),
+        axios.get("/api/loaded-hvac-edges"),
+        axios.get("/api/hvac-values"),
       ]);
 
       const valuesMap = valuesResponse.data.reduce((acc, item) => {
@@ -191,7 +191,7 @@ const DnDFlow = () => {
       setNodes((nds) => [...nds, newNode]);
 
       try {
-        await axios.post("http://192.168.1.100:4000/api/hvac-nodes", {
+        await axios.post("/api/hvac-nodes", {
           label: `${type} Node`,
           x: position.x,
           y: position.y,
@@ -215,7 +215,7 @@ const DnDFlow = () => {
       setEdges((eds) => addEdge(params, eds));
 
       axios
-        .post("http://192.168.1.100:4000/api/hvac-edges", {
+        .post("/api/hvac-edges", {
           source: params.source,
           target: params.target,
         })
@@ -238,14 +238,14 @@ const DnDFlow = () => {
     const { id, position } = node;
     setNodes((nds) => nds.map((n) => (n.id === id ? { ...n, position } : n)));
     axios
-      .put(`http://192.168.1.100:4000/api/hvac-nodes/${id}`, position)
+      .put(`/api/hvac-nodes/${id}`, position)
       .then(() => toast.success("Node position updated!"))
       .catch((error) => toast.error("Error updating node position."));
   };
 
   const deleteNode = async (id) => {
     try {
-      await axios.delete(`http://192.168.1.100:4000/api/hvac-nodes/${id}`);
+      await axios.delete(`/api/hvac-nodes/${id}`);
       setNodes((nds) => nds.filter((node) => node.id !== id));
       toast.success("Node deleted successfully!");
     } catch (error) {
@@ -256,7 +256,7 @@ const DnDFlow = () => {
 
   const deleteEdge = async (id) => {
     try {
-      await axios.delete(`http://192.168.1.100:4000/api/hvac-edges/${id}`);
+      await axios.delete(`/api/hvac-edges/${id}`);
       setEdges((eds) => eds.filter((edge) => edge.id !== id));
       toast.success("Edge deleted successfully!");
     } catch (error) {
@@ -302,7 +302,7 @@ const DnDFlow = () => {
 
       try {
         await axios.put(
-          `http://192.168.1.100:4000/api/label-hvac-nodes/${editingNode.id}`,
+          `/api/label-hvac-nodes/${editingNode.id}`,
           {
             label: newLabel,
           }

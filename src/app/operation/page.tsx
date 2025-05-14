@@ -29,11 +29,11 @@ const Operation = () => {
         </div>
 
         <div><ProcessComponent /></div>
-        <div><CTIndividualProcess apiUrl={`http://192.168.1.100:4000/api/individual?datetime=${encodeURIComponent(dateTime)}`} label="CTIndividualProcess"/></div>
-        <div><LossInProcess apiUrl={`http://192.168.1.100:4000/api/loss?datetime=${encodeURIComponent(dateTime)}`} label="Loss In-Process"/></div>
+        <div><CTIndividualProcess apiUrl={`/api/individual?datetime=${encodeURIComponent(dateTime)}`} label="CTIndividualProcess"/></div>
+        <div><LossInProcess apiUrl={`/api/loss?datetime=${encodeURIComponent(dateTime)}`} label="Loss In-Process"/></div>
         <div>
           <KadaiList
-            apiUrl={`http://192.168.1.100:4000/api/kadai-list?datetime=${encodeURIComponent(dateTime)}`}
+            apiUrl={`/api/kadai-list?datetime=${encodeURIComponent(dateTime)}`}
             label="Kadai List"
           />
         </div>

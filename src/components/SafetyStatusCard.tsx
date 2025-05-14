@@ -12,7 +12,7 @@ export default function SafetyStatusCard({ type }) {
     const editApiEndpoint = type === "hvac" ? "edit-safety-hvac" : "edit-safety-brs";
 
     useEffect(() => {
-        fetch(`http://192.168.1.100:4000/api/${apiEndpoint}`)
+        fetch(`/api/${apiEndpoint}`)
             .then((res) => res.json())
             .then((data) => {
                 setData(data[0]);
@@ -40,7 +40,7 @@ export default function SafetyStatusCard({ type }) {
         };
         console.log(updatedData);
 
-        fetch(`http://192.168.1.100:4000/api/${editApiEndpoint}/${data.id}`, {
+        fetch(`/api/${editApiEndpoint}/${data.id}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
