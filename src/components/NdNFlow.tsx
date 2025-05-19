@@ -101,13 +101,19 @@ const DnDFlow = () => {
             data: {
               label: (
                 <div>
-                  <div className="bg-[#4B0082] text-white rounded-t-sm mt-[-3px] w-full">{node.label}</div>
+                  <div className="bg-[#4B0082] text-white rounded-t-sm mt-[-3px] w-full">
+                    {node.label}
+                  </div>
                   <div className="nowrap-text bg-emerald-200 rounded-b-sm w-full">
                     {node.Or || "0%"} | {node.Defect || 0}
                   </div>
                   <div className="hover-container mt-2">
                     <a
-                      href="https://www.tsdmcd.com/dekidaka"
+                      href={
+                        node.label && node.label.match(/^Core#\d+$/)
+                          ? `http://192.168.1.106:4000/loss_${node.label.toLowerCase().replace('#', '_')}`
+                          : "https://www.tsdmcd.com/dekidaka"
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="hover-link text-white bg-rose-700 hover:bg-rose-900 rounded-sm text-[8px] p-1"
@@ -122,7 +128,7 @@ const DnDFlow = () => {
             ...nodeDefaults,
             style: { ...nodeDefaults.style, backgroundColor },
             handleRightColor,
-          };
+          }
         })
       );
 
@@ -134,7 +140,6 @@ const DnDFlow = () => {
         }))
       );
 
-      // toast.success("Nodes & Edges loaded successfully!");
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Error loading nodes or edges.");
@@ -151,7 +156,7 @@ const DnDFlow = () => {
         const handleRight = reactFlowWrapper.current.querySelector(`.react-flow__handle-right[data-nodeid="${node.id}"]`);
 
         if (handleRight) {
-          handleRight.style.backgroundColor = node.handleRightColor;  
+          handleRight.style.backgroundColor = node.handleRightColor;
         }
 
         console.log(`Node ${node.id} handle color set to: ${node.handleRightColor}`);
@@ -164,7 +169,7 @@ const DnDFlow = () => {
   }, [nodes]);
 
   useEffect(() => {
-    fetchData(); 
+    fetchData();
     // const intervalId = setInterval(fetchData, 1000000); 
 
     // return () => clearInterval(intervalId); 
