@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { FaPlus } from "react-icons/fa";
 
@@ -25,6 +26,7 @@ type Row = {
   startTime: string;
   endTime: string;
   stockPart: string;
+  sequence: number;
 };
 
 const calculateEndTime = (
@@ -44,8 +46,15 @@ const calculateEndTime = (
   if (isNaN(totalSeconds)) return "";
 
   const endDate = new Date(startDate.getTime() + totalSeconds * 1000);
+
+  endDate.setSeconds(0);
+  const minutes = endDate.getMinutes();
+  const roundedMinutes = Math.ceil(minutes / 10) * 10;
+
+  endDate.setMinutes(roundedMinutes);
+
   const limitDate = new Date();
-  limitDate.setHours(18, 50, 0, 0); // 18:50:00
+  limitDate.setHours(18, 50, 0, 0);
 
   if (endDate > limitDate) return "18:50";
 
@@ -54,8 +63,11 @@ const calculateEndTime = (
   return `${hh}:${mm}`;
 };
 
+type ModalProps = {
+  nametableurl: string;
+};
 
-export default function Model() {
+export default function Modal({ nametableurl }: ModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [rows, setRows] = useState<Row[]>([
     {
@@ -67,89 +79,173 @@ export default function Model() {
       startTime: "07:35",
       endTime: "",
       stockPart: "",
+      sequence: 1,
     },
   ]);
 
+  const loadPlanData = async () => {
+    const res = await fetch(`/api/plan?table=${nametableurl}`);
+    if (!res.ok) throw new Error("Failed to fetch");
+    const data = await res.json();
+    return data;
+  };
+
+  const handleSubmit = async () => {
+    const payload = rows.map((row, index) => ({
+      partnumber: row.partNumber,
+      model: row.model,
+      qty: parseInt(row.qty, 10),
+      cttarget: parseInt(row.ctTarget, 10),
+      starttime: row.startTime,
+      endtime: row.endTime,
+      sequence: index + 1,
+    }));
+
+    try {
+      const res = await fetch(`/api/insert-plan?table=${nametableurl}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("Submit failed");
+
+      const updated = await loadPlanData();
+      setRows(updated);
+      setIsOpen(false);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        alert("Error: " + err.message);
+      } else {
+        alert("An unexpected error occurred.");
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      loadPlanData().then(setRows).catch(console.error);
+    }
+  }, [isOpen]);
+
   const updateRow = (id: number, key: keyof Row, value: string) =>
-  setRows((rows) =>
-    rows.map((r) => {
-      if (r.id !== id) return r;
+    setRows((rows) =>
+      rows.map((r) => {
+        if (r.id !== id) return r;
 
-      const updated = { ...r, [key]: value };
+        const updated = { ...r, [key]: value };
 
-      if (
-        ["startTime", "qty", "ctTarget"].includes(key) &&
-        updated.startTime &&
-        updated.qty &&
-        updated.ctTarget
-      ) {
-        updated.endTime = calculateEndTime(
-          updated.startTime,
-          updated.qty,
+        if (
+          ["startTime", "qty", "ctTarget"].includes(key) &&
+          updated.startTime &&
+          updated.qty &&
           updated.ctTarget
-        );
+        ) {
+          const calculatedEnd = calculateEndTime(
+            updated.startTime,
+            updated.qty,
+            updated.ctTarget
+          );
+          if (calculatedEnd === "18:50") {
+            const [startH, startM] = updated.startTime.split(":").map(Number);
+            const startDate = new Date();
+            startDate.setHours(startH, startM, 0, 0);
+
+            const limitDate = new Date();
+            limitDate.setHours(18, 50, 0, 0);
+
+            const availableSeconds =
+              (limitDate.getTime() - startDate.getTime()) / 1000;
+
+            const ct = parseInt(updated.ctTarget);
+            const maxQty = Math.floor(availableSeconds / ct);
+
+            updated.qty = maxQty.toString();
+            updated.endTime = "18:50";
+          } else {
+            updated.endTime = calculatedEnd;
+          }
+        }
+
+        return updated;
+      })
+    );
+
+  const addRow = () =>
+    setRows((rows) => {
+      if (rows.length === 0) {
+        return [
+          {
+            id: Date.now(),
+            partNumber: "",
+            model: "",
+            qty: "",
+            ctTarget: "",
+            startTime: "07:35",
+            endTime: "",
+            stockPart: "",
+            sequence: 1,
+          },
+        ];
       }
 
-      return updated;
-    })
-  );
+      const prevRow = rows[rows.length - 1];
+      const newStartTime = prevRow.endTime || "07:35";
 
+      const [newStartHour, newStartMin] = newStartTime.split(":").map(Number);
+      const endLimit = new Date();
+      endLimit.setHours(18, 50, 0, 0);
 
-const addRow = () =>
-  setRows((rows) => {
-    if (rows.length === 0) {
+      const newStartDate = new Date();
+      newStartDate.setHours(newStartHour, newStartMin, 0, 0);
+
+      if (newStartDate >= endLimit) {
+        alert("Cannot add more rows. End time limit reached (18:50).");
+        return rows;
+      }
+
       return [
+        ...rows,
         {
           id: Date.now(),
           partNumber: "",
           model: "",
           qty: "",
           ctTarget: "",
-          startTime: "07:35",
+          startTime: newStartTime,
           endTime: "",
           stockPart: "",
+          sequence: rows.length + 1,
         },
       ];
+    });
+
+  const deleteRow = async (id: number) => {
+    try {
+    const res = await fetch(`/api/plan/${id}?table=${nametableurl}`, {
+      method: "DELETE",
+    });
+
+      if (!res.ok) {
+        const data = await res.json();
+        console.error("Delete failed:", data.message);
+        alert("Delete failed: " + data.message);
+        return;
+      }
+
+      console.log("Deleted successfully");
+      setRows((rows) => rows.filter((r) => r.id !== id));
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("Delete error: " + (error as Error).message);
     }
-
-    const prevRow = rows[rows.length - 1];
-    const newStartTime = prevRow.endTime || "07:35";
-
-    const [newStartHour, newStartMin] = newStartTime.split(":").map(Number);
-    const endLimit = new Date();
-    endLimit.setHours(18, 50, 0, 0);
-
-    const newStartDate = new Date();
-    newStartDate.setHours(newStartHour, newStartMin, 0, 0);
-
-    if (newStartDate >= endLimit) {
-      alert("Cannot add more rows. End time limit reached (18:50).");
-      return rows;
-    }
-
-    return [
-      ...rows,
-      {
-        id: Date.now(),
-        partNumber: "",
-        model: "",
-        qty: "",
-        ctTarget: "",
-        startTime: newStartTime,
-        endTime: "",
-        stockPart: "",
-      },
-    ];
-  });
-
-
-  const deleteRow = (id: number) =>
-    setRows((rows) => rows.filter((r) => r.id !== id));
+  };
 
   return (
     <div className="w-full bg-[#465e86] p-4">
       <div className="flex items-center justify-between gap-4 w-full">
-        <h1 className="text-xl font-bold text-white">Production Plan Today Status</h1>
+        <h1 className="text-xl font-bold text-white">
+          Production Plan Today Status
+        </h1>
         <button
           onClick={() => setIsOpen(true)}
           className="px-4 py-2 flex items-center bg-[#1890ff] text-white rounded hover:bg-blue-700"
@@ -172,11 +268,16 @@ const addRow = () =>
                       Sequence
                     </th>
                     {columns.map((col) => (
-                      <th key={col.key} className="p-2 border whitespace-nowrap">
+                      <th
+                        key={col.key}
+                        className="p-2 border whitespace-nowrap"
+                      >
                         {col.label}
                       </th>
                     ))}
-                    <th className="p-2 border rounded-tr-lg whitespace-nowrap">Action</th>
+                    <th className="p-2 border rounded-tr-lg whitespace-nowrap">
+                      Action
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -197,7 +298,11 @@ const addRow = () =>
                               className="w-full p-2 bg-white rounded border"
                               value={row[key as keyof Row]}
                               onChange={(e) =>
-                                updateRow(row.id, key as keyof Row, e.target.value)
+                                updateRow(
+                                  row.id,
+                                  key as keyof Row,
+                                  e.target.value
+                                )
                               }
                             >
                               <option value="">Select</option>
@@ -213,9 +318,14 @@ const addRow = () =>
                               className="w-full p-2 bg-white rounded border"
                               value={row[key as keyof Row]}
                               onChange={(e) =>
-                                updateRow(row.id, key as keyof Row, e.target.value)
+                                updateRow(
+                                  row.id,
+                                  key as keyof Row,
+                                  e.target.value
+                                )
                               }
                               disabled={key === "endTime"}
+                              min={type === "number" ? 0 : undefined}
                             />
                           )}
                         </td>
@@ -248,7 +358,10 @@ const addRow = () =>
                 >
                   Cancel
                 </button>
-                <button className="px-4 py-2 bg-[#1890ff] text-white rounded hover:bg-blue-700">
+                <button
+                  onClick={handleSubmit}
+                  className="px-4 py-2 bg-[#1890ff] text-white rounded hover:bg-blue-700"
+                >
                   Submit
                 </button>
               </div>

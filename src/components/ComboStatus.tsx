@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-
+import { GiCardboardBox } from "react-icons/gi";
 interface CardData {
   title: string;
   value: string;
@@ -15,7 +15,7 @@ const ComboStatus = () => {
         if (!res.ok) throw new Error("Network response was not ok");
         return res.json();
       })
-      .then((data: CardData[]) => { 
+      .then((data: CardData[]) => {
         setData(data);
       })
       .catch((error) => {
@@ -23,7 +23,13 @@ const ComboStatus = () => {
       });
   }, []);
 
-  if (data.length === 0) return <p>Loading...</p>;
+  if (data.length === 0)
+    return (
+      <div className="relative z-10 flex flex-col items-center justify-center gap-2">
+        <GiCardboardBox size={32} />
+        <span>No data</span>
+      </div>
+    );
 
   return (
     <div className="w-full bg-[#100C2A] py-4 rounded-lg">
@@ -55,7 +61,7 @@ const ComboStatus = () => {
               key={index}
               style={{
                 backgroundColor: "#808080",
-                border: "1px solid white", 
+                border: "1px solid white",
                 borderRadius: "8px",
                 padding: "20px",
                 width: "250px",

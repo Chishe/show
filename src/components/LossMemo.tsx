@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
+import { GiCardboardBox } from "react-icons/gi";
 interface LossMemoItem {
   itemno: number;
   situation: string;
@@ -17,14 +17,20 @@ interface LossMemoItem {
   effectiveLot: string;
 }
 
-const LossMemo: React.FC = () => {
+interface LossMemoProps {
+  nametableurl: string;
+}
+export default function LossMemo({ nametableurl }: LossMemoProps) {
   const [data, setData] = useState<LossMemoItem[]>([]);
-  const [editing, setEditing] = useState<{ itemno: number; field: string } | null>(null);
+  const [editing, setEditing] = useState<{
+    itemno: number;
+    field: string;
+  } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
 
   const fetchData = async () => {
     try {
-      const response = await axios.get("/api/getRecords");
+      const response = await axios.get(`/api/getRecords?table=${nametableurl}`);
       setData(response.data);
     } catch (error) {
       console.error("Failed to fetch records: ", error);
@@ -32,7 +38,11 @@ const LossMemo: React.FC = () => {
     }
   };
 
-  const handleEdit = (itemno: number, field: keyof LossMemoItem, value: string) => {
+  const handleEdit = (
+    itemno: number,
+    field: keyof LossMemoItem,
+    value: string
+  ) => {
     setEditing({ itemno, field });
     setEditValue(value);
   };
@@ -42,7 +52,7 @@ const LossMemo: React.FC = () => {
 
     const { itemno, field } = editing;
     try {
-      await axios.put("/api/updateRecord", {
+      await axios.put(`/api/updateRecord?table=${nametableurl}`, {
         itemno,
         field,
         value: editValue,
@@ -105,23 +115,39 @@ const LossMemo: React.FC = () => {
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={11} className="text-center text-gray-500 py-4 border">
-                  No data
+                <td
+                  colSpan={11}
+                  className="text-center text-gray-500 py-4 border"
+                >
+                  <div className="relative z-10 flex flex-col items-center justify-center gap-2">
+                    <GiCardboardBox size={32} />
+                    <span>No data</span>
+                  </div>
                 </td>
               </tr>
             ) : (
               data.map((item) => (
                 <tr key={item.itemno} className="text-center text-white">
                   {Object.entries(item).map(([field, value]) => {
-                    const isEditing = editing?.itemno === item.itemno && editing.field === field;
+                    const isEditing =
+                      editing?.itemno === item.itemno &&
+                      editing.field === field;
                     const isEditable = field !== "itemno";
 
                     return (
                       <td
                         key={field}
-                        className={`border ${getColorClass(field, String(value))}`}
+                        className={`border ${getColorClass(
+                          field,
+                          String(value)
+                        )}`}
                         onClick={() =>
-                          isEditable && handleEdit(item.itemno, field as keyof LossMemoItem, String(value))
+                          isEditable &&
+                          handleEdit(
+                            item.itemno,
+                            field as keyof LossMemoItem,
+                            String(value)
+                          )
                         }
                       >
                         {isEditing ? (
@@ -151,6 +177,4 @@ const LossMemo: React.FC = () => {
       </div>
     </div>
   );
-};
-
-export default LossMemo;
+}

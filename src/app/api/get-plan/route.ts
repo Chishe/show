@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+// app/api/get-plan/route.ts
+import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
 interface PlanRow {
@@ -12,17 +13,14 @@ interface PlanRow {
   endtime: string;
 }
 
-export async function GET(req: NextRequest) {
-  const table = req.nextUrl.searchParams.get('table') || 'null';
-  if (!table) {
-    return NextResponse.json({ error: 'Table name is required' }, { status: 400 });
-  }
-
+export async function GET() {
   try {
     const today = new Date().toISOString().split('T')[0];
-    const query = `SELECT id, sequence, partnumber, model, qty, cttarget, starttime, endtime FROM plan_${table} WHERE planDate = $1 ORDER BY sequence`;
 
-    const result = await pool.query(query, [today]);
+    const result = await pool.query(
+      'SELECT id, sequence, partnumber, model, qty, cttarget, starttime, endtime FROM plan WHERE planDate = $1 ORDER BY sequence',
+      [today]
+    );
 
     const data = result.rows.map((row: PlanRow) => ({
       id: row.id,

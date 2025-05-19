@@ -16,11 +16,12 @@ export default function Loss() {
                dark:[&::-webkit-scrollbar-track]:bg-[#151c34] 
                dark:[&::-webkit-scrollbar-thumb]:bg-[#aeaeb7]"
       >
-        <div className="bg-[#100C2A] p-4 rounded-lg">
-          <TimeSlotChart />
+        <div className="w-full max-w-full h-[400px] bg-[#100C2A] rounded-lg p-4">
+          <TimeSlotChart nametableurl="core_1"/>
         </div>
-        <Modal />
-        <PlanTable />
+
+        <Modal nametableurl="core_1" />
+        <PlanTable nametableurl="core_1" />
         <div>
           <h2 className="text-2xl font-bold ml-4 my-4 text-white">
             Component Status
@@ -29,7 +30,7 @@ export default function Loss() {
         </div>
         <div>
           <h2 className="text-2xl font-bold ml-4 my-4 text-white">Loss Memo</h2>
-          <LossMemo />
+          <LossMemo nametableurl="core_1"/>
         </div>
       </div>
     </div>

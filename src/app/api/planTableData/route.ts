@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 type TimeSlots = {
   [key: string]: {
-    target: (number | null)[];
+    target: (number | null)[]; 
     actual: (number | null)[];
   };
 };
@@ -17,18 +17,28 @@ type Row = {
   componentstatus: string;
   target: number;
   actual: number;
-  qty: number;
   timeslots: TimeSlots;
 };
 
-export async function GET() {
+export async function GET(request: NextRequest) { 
   try {
+    const { searchParams } = new URL(request.url);
+    const nametableurl = searchParams.get("nametableurl") || "core_1";
+
+    if (!/^[a-zA-Z0-9_]+$/.test(nametableurl)) {
+      return NextResponse.json(
+        { error: "Invalid table name" },
+        { status: 400 }
+      );
+    }
+
     const rowsQuery = `
       SELECT r.seq, r.partnumber, r.partdimension, r.firstpiece, r.machinestatus, r.componentstatus, 
-             r.target, r.actual, r.qty, 
+             r.target, r.actual, 
              jsonb_object_agg(ts.timeSlot, jsonb_build_object('target', ts.target, 'actual', ts.actual)) AS timeslots
-      FROM rows r
-      JOIN timeSlots ts ON r.seq = ts.row_id
+      FROM rows_${nametableurl} r
+      JOIN timeSlots_${nametableurl} ts ON r.seq = ts.row_id
+      WHERE ts.date = CURRENT_DATE
       GROUP BY r.seq;
     `;
 
@@ -79,6 +89,9 @@ export async function GET() {
     return NextResponse.json(rows);
   } catch (error) {
     console.error("Error fetching data:", error);
-    return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch data" },
+      { status: 500 }
+    );
   }
 }

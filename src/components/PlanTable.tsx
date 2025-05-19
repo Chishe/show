@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import { GiCardboardBox } from "react-icons/gi";
 import axios from "axios";
 
 const TIME_SLOTS = [
@@ -27,7 +28,6 @@ type RawRow = {
   partnumber: string;
   target: number;
   actual: number;
-  qty: number;
   partdimension: string;
   firstpiece: string;
   machinestatus: string;
@@ -98,25 +98,31 @@ const renderStatusDropdown = (
     </select>
   );
 };
-
-export default function PlanTable() {
+type PlanTableProps = {
+  nametableurl: string;
+};
+export default function PlanTable({ nametableurl }: PlanTableProps) {
   const [rows, setRows] = useState<Row[]>([]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      axios.get("/api/planTableData").then((res) => {
-        const rawData: RawRow[] = res.data;
+      axios
+        .get(
+          `/api/planTableData?nametableurl=${encodeURIComponent(nametableurl)}`
+        )
+        .then((res) => {
+          const rawData: RawRow[] = res.data;
 
-        const withIcons: Row[] = rawData.map((row) => ({
-          ...row,
-          partdimension: row.partdimension,
-          firstpiece: row.firstpiece,
-          machinestatus: row.machinestatus,
-          componentstatus: row.componentstatus,
-        }));
+          const withIcons: Row[] = rawData.map((row) => ({
+            ...row,
+            partdimension: row.partdimension,
+            firstpiece: row.firstpiece,
+            machinestatus: row.machinestatus,
+            componentstatus: row.componentstatus,
+          }));
 
-        setRows(withIcons);
-      });
+          setRows(withIcons);
+        });
     }, 1000);
 
     return () => clearInterval(interval);
@@ -157,33 +163,34 @@ export default function PlanTable() {
     type: "target" | "actual";
     value: number | null;
   } | null>(null);
-  
-const handleStatusChange = (
-  seq: number,
-  field: "partdimension" | "firstpiece" | "machinestatus" | "componentstatus",
-  newValue: string
-) => {
-  console.log("📤 Sending to API:", {
-    seq,
-    field,
-    value: newValue,
-  });
 
-  setRows((prevRows) =>
-    prevRows.map((row) =>
-      row.seq === seq ? { ...row, [field]: newValue } : row
-    )
-  );
+  const handleStatusChange = (
+    seq: number,
+    field: "partdimension" | "firstpiece" | "machinestatus" | "componentstatus",
+    newValue: string
+  ) => {
+    console.log("📤 Sending to API:", {
+      seq,
+      field,
+      value: newValue,
+    });
 
-  axios.post("/api/update-status", {
-    seq,
-    field,
-    value: newValue,
-  }).catch((err) => {
-    console.error("❌ API Error:", err);
-  });
-};
+    setRows((prevRows) =>
+      prevRows.map((row) =>
+        row.seq === seq ? { ...row, [field]: newValue } : row
+      )
+    );
 
+    axios
+      .post(`/api/update-status?table=${nametableurl}`, {
+        seq,
+        field,
+        value: newValue,
+      })
+      .catch((err) => {
+        console.error("❌ API Error:", err);
+      });
+  };
 
   return (
     <div className="w-full bg-[#100C2A] py-4 rounded-lg">
@@ -198,15 +205,18 @@ const handleStatusChange = (
                 P/N
               </th>
               <th className="p-2 border whitespace-nowrap">Part Dimension</th>
-              <th className="p-2 border whitespace-nowrap">1st Piece</th>
-              <th className="p-2 border whitespace-nowrap">M/C Status</th>
               <th className="p-2 border whitespace-nowrap">Component Status</th>
+              <th className="p-2 border whitespace-nowrap">M/C Status</th>
+              <th className="p-2 border whitespace-nowrap">1st Piece</th>
+
               <th className="p-2 border whitespace-nowrap"></th>
               <th className="p-2 border whitespace-nowrap">Qty</th>
               {TIME_SLOTS.map((slot) => (
                 <th
                   key={slot}
-                  colSpan={6}
+                  colSpan={
+                    ["09:40-10:30", "14:40-15:30"].includes(slot) ? 5 : 6
+                  }
                   className="p-2 border text-xs text-center whitespace-nowrap"
                 >
                   {slot}
@@ -219,15 +229,18 @@ const handleStatusChange = (
               <tr>
                 <td
                   colSpan={8 + TIME_SLOTS.length * 6}
-                  className="text-white text-center py-6"
+                  className="text-white text-center py-10 relative"
                 >
-                  No data
+                  <div className="relative z-10 flex flex-col items-center justify-center gap-2">
+                    <GiCardboardBox size={32} />
+                    <span>No data</span>
+                  </div>
                 </td>
               </tr>
             ) : (
               rows.map((row) => (
                 <React.Fragment key={row.seq}>
-                  <tr>
+                  <tr className="text-white">
                     <td
                       className="p-2 border sticky left-0 z-10 bg-[#100C2A]"
                       rowSpan={2}
@@ -250,29 +263,6 @@ const handleStatusChange = (
                         )}
                       </div>
                     </td>
-
-                    <td className="p-2 border" rowSpan={2}>
-                      <div className="flex items-center gap-2 justify-center">
-                        {renderStatusDot(row.firstpiece as string)}
-                        {renderStatusDropdown(
-                          row.firstpiece as string,
-                          (newVal) =>
-                            handleStatusChange(row.seq, "firstpiece", newVal)
-                        )}
-                      </div>
-                    </td>
-
-                    <td className="p-2 border" rowSpan={2}>
-                      <div className="flex items-center gap-2 justify-center">
-                        {renderStatusDot(row.machinestatus as string)}
-                        {renderStatusDropdown(
-                          row.machinestatus as string,
-                          (newVal) =>
-                            handleStatusChange(row.seq, "machinestatus", newVal)
-                        )}
-                      </div>
-                    </td>
-
                     <td className="p-2 border" rowSpan={2}>
                       <div className="flex items-center gap-2 justify-center">
                         {renderStatusDot(row.componentstatus as string)}
@@ -284,6 +274,26 @@ const handleStatusChange = (
                               "componentstatus",
                               newVal
                             )
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-2 border" rowSpan={2}>
+                      <div className="flex items-center gap-2 justify-center">
+                        {renderStatusDot(row.machinestatus as string)}
+                        {renderStatusDropdown(
+                          row.machinestatus as string,
+                          (newVal) =>
+                            handleStatusChange(row.seq, "machinestatus", newVal)
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-2 border" rowSpan={2}>
+                      <div className="flex items-center gap-2 justify-center">
+                        {renderStatusDot(row.firstpiece as string)}
+                        {renderStatusDropdown(
+                          row.firstpiece as string,
+                          (newVal) =>
+                            handleStatusChange(row.seq, "firstpiece", newVal)
                         )}
                       </div>
                     </td>
@@ -304,39 +314,53 @@ const handleStatusChange = (
                           return total + sumTarget;
                         }, 0)}
                     </td>
-{row.timeslots &&
-  Object.entries(row.timeslots).map(([slot, values]) =>
-    values.target?.map((val, i) => {
-      const isNull = val === null;
-      const bgColor = isNull ? "" : "bg-[#e0e0e0a2]";
-      return (
-        <td
-          key={`${slot}-target-${i}`}
-          className={`p-1 border whitespace-nowrap ${bgColor}`}
-        >
-          <div
-            className="w-full text-xs text-center cursor-pointer p-2"
-            onClick={() =>
-              setPopupData({
-                isOpen: true,
-                seq: row.seq,
-                slot,
-                index: i,
-                type: "target",
-                value: val,
-              })
-            }
-          >
-            {val !== null ? val : ""}
-          </div>
-        </td>
-      );
-    })
-  )}
+                    {row.timeslots &&
+                      Object.entries(row.timeslots).map(([slot, values]) => {
+                        const targets = values.target || [];
+                        const mustHaveFive = [
+                          "09:40-10:30",
+                          "14:40-15:30",
+                        ].includes(slot);
+                        const paddedTargets = [...targets];
 
+                        if (mustHaveFive) {
+                          while (paddedTargets.length < 5) {
+                            paddedTargets.push(null);
+                          }
+                        } else {
+                          paddedTargets.length = 6;
+                        }
+
+                        return paddedTargets.map((val, i) => {
+                          const isNull = val === null;
+                          const bgColor = isNull ? "" : "bg-[#e0e0e0a2]";
+                          return (
+                            <td
+                              key={`${slot}-target-${i}`}
+                              className={`p-1 border whitespace-nowrap ${bgColor}`}
+                            >
+                              <div
+                                className="w-full text-xs text-center cursor-pointer p-2"
+                                onClick={() =>
+                                  setPopupData({
+                                    isOpen: true,
+                                    seq: row.seq,
+                                    slot,
+                                    index: i,
+                                    type: "target",
+                                    value: val,
+                                  })
+                                }
+                              >
+                                {val !== null ? val : ""}
+                              </div>
+                            </td>
+                          );
+                        });
+                      })}
                   </tr>
 
-                  <tr>
+                  <tr className="text-white">
                     <td className="p-2 border whitespace-nowrap">Actual</td>
 
                     <td className="p-2 border whitespace-nowrap">
@@ -355,10 +379,30 @@ const handleStatusChange = (
                         }, 0)}
                     </td>
                     {row.timeslots &&
-                      Object.entries(row.timeslots).map(([slot, values]) =>
-                        values.actual.map((val, i) => {
-                          const actualVal = values.actual[i];
-                          const targetVal = values.target[i];
+                      Object.entries(row.timeslots).map(([slot, values]) => {
+                        const actuals = values.actual || [];
+                        const targets = values.target || [];
+                        const mustHaveFive = [
+                          "09:40-10:30",
+                          "14:40-15:30",
+                        ].includes(slot);
+
+                        const paddedActuals = [...actuals];
+                        const paddedTargets = [...targets];
+
+                        if (mustHaveFive) {
+                          while (paddedActuals.length < 5)
+                            paddedActuals.push(null);
+                          while (paddedTargets.length < 5)
+                            paddedTargets.push(null);
+                        } else {
+                          paddedActuals.length = 6;
+                          paddedTargets.length = 6;
+                        }
+
+                        return paddedActuals.map((val, i) => {
+                          const actualVal = paddedActuals[i];
+                          const targetVal = paddedTargets[i];
                           const bgColor = getCellBgColor(targetVal, actualVal);
 
                           return (
@@ -384,8 +428,8 @@ const handleStatusChange = (
                               </div>
                             </td>
                           );
-                        })
-                      )}
+                        });
+                      })}
                   </tr>
                 </React.Fragment>
               ))
@@ -420,7 +464,7 @@ const handleStatusChange = (
                     newValue
                   );
 
-                  await axios.post("/api/update-timeslot", {
+                  await axios.post(`/api/update-timeslot?table=${nametableurl}`, {
                     seq: popupData.seq,
                     slot: popupData.slot,
                     index: popupData.index,

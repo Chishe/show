@@ -11,10 +11,10 @@ import {
   ChartOptions,
   TooltipItem,
 } from "chart.js";
-
+import { GiCardboardBox } from "react-icons/gi";
 import { Line } from "react-chartjs-2";
 import type { Chart as ChartType } from "chart.js";
-import { toast, ToastContainer } from 'react-toastify'; // Import toast and ToastContainer
+import { toast, ToastContainer } from "react-toastify";
 
 ChartJS.register(
   CategoryScale,
@@ -29,8 +29,8 @@ ChartJS.register(
 interface ChartData {
   timeSlot: string;
   partNumber: string;
-  targetA: number[][]; 
-  actualA: number[][]; 
+  targetA: number[][];
+  actualA: number[][];
 }
 
 interface ChartState {
@@ -44,8 +44,10 @@ interface ChartState {
     pointRadius?: number;
   }[];
 }
-
-const TimeSlotChart = () => {
+interface TimeSlotChartProps {
+  nametableurl: string;
+}
+const TimeSlotChart = ({ nametableurl }: TimeSlotChartProps) => {
   const [chartData, setChartData] = useState<ChartState | null>(null);
   const [timeSlotRefs, setTimeSlotRefs] = useState<string[]>([]);
   const [partnumberRefs, setpartnumbeRefs] = useState<string[]>([]);
@@ -58,91 +60,116 @@ const TimeSlotChart = () => {
   const chartRef = useRef<ChartType<"line">>(null);
 
   useEffect(() => {
-    fetch("/api/chartdata")
-      .then((res) => {
-        if (!res.ok) throw new Error("Network response was not ok");
-        return res.json();
-      })
-      .then((data: ChartData[]) => {
-        const labels: string[] = [];
-        const target: number[] = [];
-        const actual: number[] = [];
-        const slots: string[] = [];
-        const pn: string[] = [];
-        let counter = 1;
+    const fetchChartData = () => {
+      fetch(`/api/chartdata?table=${nametableurl}`)
+        .then((res) => {
+          if (!res.ok) throw new Error("Network response was not ok");
+          return res.json();
+        })
+        .then((data: ChartData[]) => {
+          const labels: string[] = [];
+          const target: number[] = [];
+          const actual: number[] = [];
+          const slots: string[] = [];
+          const pn: string[] = [];
+          let counter = 1;
 
-        data.forEach((d) => {
-          const tArr = d.targetA[0];
-          const aArr = d.actualA[0];
-          tArr.forEach((t, idx) => {
-            const a = aArr[idx];
-            if (t !== null || a !== null) {
-              labels.push(counter.toString());
-              counter++;
-              target.push(t ?? NaN);
-              actual.push(a ?? NaN);
-              slots.push(d.timeSlot);
-              pn.push(d.partNumber);
-            }
+          data.forEach((d) => {
+            const tArr = d.targetA[0];
+            const aArr = d.actualA[0];
+            tArr.forEach((t, idx) => {
+              const a = aArr[idx];
+              if (t !== null || a !== null) {
+                labels.push(counter.toString());
+                counter++;
+                target.push(t ?? NaN);
+                actual.push(a ?? NaN);
+                slots.push(d.timeSlot);
+                pn.push(d.partNumber);
+              }
+            });
           });
-        });
 
-        setTimeSlotRefs(slots);
-        setpartnumbeRefs(pn);
-        setChartData({
-          labels,
-          datasets: [
-            {
-              label: "Target",
-              data: target,
-              borderColor: "#74ee15",
-              fill: false,
-              borderDash: [5, 5],
-            },
-            {
-              label: "Actual",
-              data: actual,
-              borderColor: "#4deeea",
-              fill: false,
-              pointRadius: 6,
-            },
-          ],
+          setTimeSlotRefs(slots);
+          setpartnumbeRefs(pn);
+          setChartData({
+            labels,
+            datasets: [
+              {
+                label: "Target",
+                data: target,
+                borderColor: "#9D00FF",
+                fill: false,
+                borderDash: [10, 10],
+                pointRadius: 0,
+              },
+              {
+                label: "Target 97%",
+                data: target.map((val) => val * 0.97),
+                borderColor: "#2CFF05",
+                fill: false,
+                pointRadius: 0,
+              },
+              {
+                label: "Actual",
+                data: actual,
+                borderColor: "#4deeea",
+                fill: false,
+                pointRadius: 6,
+              },
+            ],
+          });
+        })
+        .catch((error) => {
+          console.error("Error fetching chart data:", error);
         });
-      })
-      .catch((error) => {
-        console.error("Error fetching chart data:", error);
-      });
+    };
+
+    fetchChartData();
+
+    const interval = setInterval(fetchChartData, 1000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const options: ChartOptions<"line"> = {
     responsive: true,
+    maintainAspectRatio: false,
     scales: {
       x: {
         type: "category",
         title: {
           display: true,
-          text: "Time Slot",
+          text: "",
           color: "white",
         },
         ticks: {
           color: "white",
         },
         grid: {
-          color: "white",
+          display: false,
         },
       },
       y: {
+        min: 0,
+        max: 100,
         ticks: {
-          stepSize: 10,
+          stepSize: 20,
           color: "white",
         },
         title: {
           display: true,
-          text: "Value",
+          text: "pcs/10 min",
           color: "white",
+          font: {
+            size: 12,
+          },
         },
         grid: {
           color: "white",
+          drawOnChartArea: true,
+          drawTicks: true,
+          lineWidth: 0.5,
         },
       },
     },
@@ -152,8 +179,12 @@ const TimeSlotChart = () => {
         labels: {
           color: "white",
         },
+        display: false,
       },
       tooltip: {
+        enabled: true,
+        mode: "index",
+        intersect: false,
         callbacks: {
           title: (tooltipItems: TooltipItem<"line">[]) => {
             const idx = tooltipItems[0].dataIndex;
@@ -165,6 +196,14 @@ const TimeSlotChart = () => {
         backgroundColor: "#fff",
       },
     },
+    interaction: {
+      mode: "nearest",
+      intersect: false,
+    },
+    hover: {
+      mode: "nearest",
+      intersect: false,
+    },
     layout: {
       padding: {
         left: 10,
@@ -175,7 +214,7 @@ const TimeSlotChart = () => {
     },
     elements: {
       line: {
-        tension: 0.4,
+        tension: 0,
         borderColor: "white",
       },
     },
@@ -240,7 +279,7 @@ const TimeSlotChart = () => {
 
     console.log("📝 Record to Insert:", newRecord);
 
-    fetch("/api/insertRecord", {
+    fetch(`/api/insertRecord?table=${nametableurl}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -253,7 +292,7 @@ const TimeSlotChart = () => {
       })
       .then((data) => {
         console.log("✅ Inserted:", data);
-        toast.success("Record successfully inserted!"); 
+        toast.success("Record successfully inserted!");
       })
       .catch((error) => {
         console.error("❌ Error inserting record:", error);
@@ -263,7 +302,13 @@ const TimeSlotChart = () => {
     setShowPopup(false);
   };
 
-  if (!chartData) return <p>Loading...</p>;
+  if (!chartData)
+    return (
+      <div className="relative z-10 flex flex-col items-center justify-center gap-2">
+        <GiCardboardBox size={32} />
+        <span>No data</span>
+      </div>
+    );
 
   return (
     <>
@@ -334,7 +379,7 @@ const TimeSlotChart = () => {
           </div>
         </div>
       )}
-      <ToastContainer /> 
+      <ToastContainer />
     </>
   );
 };
