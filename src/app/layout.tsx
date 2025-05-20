@@ -2,7 +2,7 @@
 import "./globals.css";
 import Header from "@/components/Header";
 import Aside from "@/components/Aside";
-import Article from "@/components/Article";
+
 
 export const metadata = {
   title: "Command Desk",

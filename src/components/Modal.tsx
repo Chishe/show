@@ -8,7 +8,32 @@ const columns = [
     key: "partNumber",
     label: "Part Number",
     type: "select",
-    options: ["PN001", "PN002"],
+    options: ["TG447687-0171",
+      "TG447687-0160",
+      "TG447687-0070",
+      "TG447687-0430",
+      "TG447686-1830",
+      "TG447686-0601",
+      "TG447686-1770",
+      "TG447686-1820",
+      "TG447686-0591",
+      "TG447686-1760",
+      "TG447685-0033",
+      "TG447684-1140",
+      "TG447684-1130",
+      "TG447682-5330",
+      "TG447682-5320",
+      "TG447682-5080",
+      "TG447682-5090",
+      "TG447683-6400",
+      "TG447683-6390",
+      "TG447683-6100",
+      "TG447683-5940",
+      "TG447681-1380",
+      "TG447681-2930",
+      "TG447681-1500",
+      "TG447681-1620",
+      "TG447670-0090"],
   },
   { key: "model", label: "Model" },
   { key: "qty", label: "QTY. (PCS)", type: "number" },
@@ -221,9 +246,9 @@ export default function Modal({ nametableurl }: ModalProps) {
 
   const deleteRow = async (id: number) => {
     try {
-    const res = await fetch(`/api/plan/${id}?table=${nametableurl}`, {
-      method: "DELETE",
-    });
+      const res = await fetch(`/api/plan/${id}?table=${nametableurl}`, {
+        method: "DELETE",
+      });
 
       if (!res.ok) {
         const data = await res.json();

@@ -8,11 +8,10 @@ export default function Aside() {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
-<aside
-  className={`bg-[rgb(59 130 246 / .5)] text-white flex flex-col transition-all duration-300 ${
-    isOpen ? "w-62" : "w-20"
-  } h-full min-h-screen overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 scroll-smooth`}
->
+    <aside
+      className={`bg-[rgb(59 130 246 / .5)] text-white flex flex-col transition-all duration-300 ${isOpen ? "w-62" : "w-20"
+        } h-full min-h-screen overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800 scroll-smooth`}
+    >
       <ul
         className="mt-30 space-y-2 flex-grow overflow-y-auto 
                [&::-webkit-scrollbar]:w-1 
@@ -21,23 +20,26 @@ export default function Aside() {
                dark:[&::-webkit-scrollbar-track]:bg-[#151c34] 
                dark:[&::-webkit-scrollbar-thumb]:bg-[#aeaeb7]"
       >
-        {menuItems.map(({ icon, label, link }) => (
-          <li
-            key={label}
-            className={`px-6 ${
-              React.isValidElement(icon) && !icon.props.className
-                ? "py-2"
-                : "py-0"
-            } hover:bg-gray-600 rounded`}
-          >
-            <Link href={link}>
-              <div className="flex items-center gap-2">
-                <span>{icon}</span>
-                {isOpen && <span>{label}</span>}
-              </div>
-            </Link>
-          </li>
-        ))}
+        {menuItems.map(({ icon, label, link }) => {
+          const hasNoClassName =
+            React.isValidElement(icon) &&
+            !(icon.props as { className?: string })?.className;
+
+          return (
+            <li
+              key={label}
+              className={`px-6 ${hasNoClassName ? "py-2" : "py-0"} hover:bg-gray-600 rounded`}
+            >
+              <Link href={link}>
+                <div className="flex items-center gap-2">
+                  <span>{icon}</span>
+                  {isOpen && <span>{label}</span>}
+                </div>
+              </Link>
+            </li>
+          );
+        })}
+
       </ul>
 
       <button

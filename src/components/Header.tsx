@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { usePathname } from "next/navigation"; // ✅ นำเข้า usePathname
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 
 export default function Header() {
   const [shiftState, setShiftState] = useState<"All" | "☀️" | "🌙">("☀️");
-  const pathname = usePathname(); // ✅ ใช้ usePathname ได้แล้ว
+  const pathname = usePathname(); 
 
   const getPageTitle = () => {
     switch (pathname) {

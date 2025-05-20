@@ -2,7 +2,7 @@ import pool from '@/lib/db';
 
 export async function GET() {
   try {
-    const result = await pool.query("SELECT * FROM production_status_brs ORDER BY id ASC");
+    const result = await pool.query("SELECT * FROM production_status_brs ORDER BY id DESC LIMIT 4");
     
     return new Response(JSON.stringify(result.rows), {
       headers: {

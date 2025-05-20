@@ -3,9 +3,22 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-export default function CostStatusCard({ type }) {
+interface CostStatusCardProps {
+    type: "hvac" | "brs";
+}
+type CostData = {
+    id: string;
+    status: "Normal" | "Warning" | "Critical";
+    current_productivity: number | string;
+    target_productivity: number | string;
+    manhours: number | string;
+    overtime: number | string;
+    expense: number | string;
+  };
+  
+export default function CostStatusCard({ type }: CostStatusCardProps) {
     const [open, setOpen] = useState(false);
-    const [data, setData] = useState(null);
+    const [data, setData] = useState<CostData | null>(null);
     const [status, setStatus] = useState("Normal");
 
     const apiEndpoint = type === "hvac" ? "cost-hvac" : "cost-brs";
@@ -87,7 +100,7 @@ export default function CostStatusCard({ type }) {
                         <span>MH and OT</span>
                         <span>{data.manhours}/{data.overtime}</span>
                     </p>
-                    <p className={`flex justify-between ${data.expense < 0 ? "text-yellow-500" : ""}`}>
+                    <p className={`flex justify-between ${Number(data.manhours) < Number(data.overtime) ? "text-yellow-500" : ""}`}>
                         <span>Expense</span>
                         <span>{data.expense}%</span>
                     </p>

@@ -22,11 +22,16 @@ export default function ProductionStatusCards({ type }) {
     }, []);
 
     useEffect(() => {
-        fetch(`/api/${apiEndpoint}`)
-            .then((res) => res.json())
-            .then((data) => setData(data.slice(0, 4)))
-            .catch((err) => console.error("Error fetching data:", err));
-    }, []);
+        const intervalId = setInterval(() => {
+            fetch(`/api/${apiEndpoint}`)
+                .then(res => res.json())
+                .then(data => setData(data.slice(0, 4)))
+                .catch(err => console.error("Error fetching data:", err));
+        }, 1000);
+
+        return () => clearInterval(intervalId);
+    }, [apiEndpoint]);
+
 
     if (!data.length) return <p>Loading...</p>;
 

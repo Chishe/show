@@ -4,11 +4,24 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const TableComponent = ({ title, station, apiUrl }) => {
-  const [data, setData] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+interface TableData {
+  date: string;
+  video: string;
+  station?: string | number;
+  [key: string]: any;
+}
 
-  const formatDate = (utcDate) => {
+interface TableComponentProps {
+  title: string;
+  station: number;
+  apiUrl: string;
+}
+
+const TableComponent: React.FC<TableComponentProps> = ({ title, station, apiUrl }) => {
+  const [data, setData] = useState<TableData[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  const formatDate = (utcDate: string): string => {
     const date = new Date(utcDate);
     return date.toISOString().slice(0, 16).replace("T", " ");
   };
@@ -16,12 +29,11 @@ const TableComponent = ({ title, station, apiUrl }) => {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-
       try {
         const response = await fetch(apiUrl);
-        const result = await response.json();
+        const result: TableData[] = await response.json();
         const filteredData = result.filter(
-          (item) => item.station === station.toString()
+          (item) => item.station?.toString() === station.toString()
         );
         const formattedData = filteredData.map((item) => ({
           ...item,
@@ -29,12 +41,9 @@ const TableComponent = ({ title, station, apiUrl }) => {
         }));
 
         setData(formattedData);
-        // toast.success(`Station ${station} data loaded successfully`, {
-        //   autoClose: 2000,
-        // });
       } catch (error) {
-        // toast.error("Failed to load data", { autoClose: 4000 });
         console.error("Error fetching data:", error);
+        toast.error("Failed to load data");
       } finally {
         setIsLoading(false);
       }
@@ -49,7 +58,7 @@ const TableComponent = ({ title, station, apiUrl }) => {
   );
 
   return (
-    <div className="">
+    <div>
       <div className="overflow-auto">
         <table className="w-full border-separate border">
           <thead>
@@ -92,9 +101,7 @@ const TableComponent = ({ title, station, apiUrl }) => {
                 {data.map((row, index) => (
                   <tr key={index} className="border text-center">
                     <td className="border p-2 whitespace-nowrap">{row.date}</td>
-                    <td className="border p-2 whitespace-nowrap">
-                      {row.video}
-                    </td>
+                    <td className="border p-2 whitespace-nowrap">{row.video}</td>
                   </tr>
                 ))}
               </tbody>
@@ -106,7 +113,13 @@ const TableComponent = ({ title, station, apiUrl }) => {
   );
 };
 
-const getLegendColor = (label) => {
+// Optional: Define prop types for main component if needed
+interface CTIndividualProcessProps {
+  apiUrl?: string;
+  label?: string;
+}
+
+const getLegendColor = (label: string): string => {
   switch (label) {
     case "CTIndividualProcess":
       return "bg-yellow-500";
@@ -122,7 +135,7 @@ const getLegendColor = (label) => {
 export default function CTIndividualProcess({
   apiUrl = "/api/individual",
   label = "CT Individual Process",
-}) {
+}: CTIndividualProcessProps) {
   const stations = [1, 2, 3, 4, 5, 6, 7];
 
   return (

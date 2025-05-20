@@ -99,36 +99,40 @@ const DnDFlow = () => {
             id: node.id.toString(),
             type: node.type,
             data: {
-              label: (
-                <div>
-                  <div className="bg-[#4B0082] text-white rounded-t-sm mt-[-3px] w-full">
-                    {node.label}
+              label:
+                node.label?.toLowerCase() === '=conn' ? null : (
+                  <div>
+                    <div className="bg-[#4B0082] text-white rounded-t-sm mt-[-3px] w-full">
+                      {node.label}
+                    </div>
+            
+                    <div className="nowrap-text bg-emerald-200 rounded-b-sm w-full">
+                      {node.Or || "0%"} | {node.Defect || 0}
+                    </div>
+                    <div className="hover-container mt-2">
+                      <a
+                        href={
+                          node.label?.match(/^Core#\d+$/)
+                            ? `http://192.168.1.106:4000/loss_${node.label.toLowerCase().replace('#', '_')}`
+                            : "https://www.tsdmcd.com/dekidaka"
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover-link text-white bg-rose-700 hover:bg-rose-900 rounded-sm text-[8px] p-1"
+                      >
+                        MORE INFO..
+                      </a>
+                    </div>
                   </div>
-                  <div className="nowrap-text bg-emerald-200 rounded-b-sm w-full">
-                    {node.Or || "0%"} | {node.Defect || 0}
-                  </div>
-                  <div className="hover-container mt-2">
-                    <a
-                      href={
-                        node.label && node.label.match(/^Core#\d+$/)
-                          ? `http://192.168.1.106:4000/loss_${node.label.toLowerCase().replace('#', '_')}`
-                          : "https://www.tsdmcd.com/dekidaka"
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover-link text-white bg-rose-700 hover:bg-rose-900 rounded-sm text-[8px] p-1"
-                    >
-                      MORE INFO..
-                    </a>
-                  </div>
-                </div>
-              ),
+                ),
             },
+
             position: { x: node.x, y: node.y },
             ...nodeDefaults,
             style: { ...nodeDefaults.style, backgroundColor },
             handleRightColor,
           }
+
         })
       );
 

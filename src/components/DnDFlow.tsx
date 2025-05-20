@@ -6,18 +6,23 @@ import React, {
   useCallback,
 } from "react";
 import ReactFlow, {
+  Connection,
   addEdge,
   useEdgesState,
   useNodesState,
   Controls,
   Background,
   Position,
+  Edge as FlowEdge,
+  Node as FlowNode,
+  NodeMouseHandler,
+  NodeDragHandler,
 } from "react-flow-renderer";
 import axios from "axios";
 import { useDnD } from "@/components/DnDContext";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Link from 'next/link';
+
 const nodeDefaults = {
   sourcePosition: Position.Right,
   targetPosition: Position.Left,
@@ -29,59 +34,82 @@ const nodeDefaults = {
   },
 };
 
-const handleChange = (event) => {
+
+const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
   const selectedPage = event.target.value;
   window.location.href = selectedPage;
 };
 
+
 let id = 0;
 const getId = () => `dndnode_${id++}`;
 
-const customNode = ({ data }) => (
-  <div
-    style={{
-      padding: "10px",
-      backgroundColor: "#fff",
-      borderRadius: "8px",
-      textAlign: "center",
-    }}
-  >
-    <div>
-      <strong>Label:</strong> {data?.label}
-    </div>
-    <div>
-      <strong>Or:</strong> {data?.Or}
-    </div>
-    <div>
-      <strong>Defect:</strong> {data?.Defect}
-    </div>
+interface CustomNodeData {
+  label?: string;
+  Or?: string;
+  Defect?: number;
+}
+interface Node {
+  id: string | number;
+  label: string;
+  type: string;
+  x: number;
+  y: number;
+  Or?: string;
+  Defect?: number;
+  data: {
+    label: React.ReactNode;
+    [key: string]: any;
+  };
+}
+
+interface Edge {
+  id: number | string;
+  source: string;
+  target: string;
+}
+
+interface ValueItem {
+  label: string;
+  value?: number;
+  max?: number;
+  min?: number;
+}
+const customNode: React.FC<{ data: CustomNodeData }> = ({ data }) => (
+  <div style={{ padding: "10px", backgroundColor: "#fff", borderRadius: "8px", textAlign: "center" }}>
+    <div><strong>Label:</strong> {data?.label}</div>
+    <div><strong>Or:</strong> {data?.Or}</div>
+    <div><strong>Defect:</strong> {data?.Defect}</div>
   </div>
 );
 
+
 const DnDFlow = () => {
-  const reactFlowWrapper = useRef(null);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { type } = useDnD();
-  const [editingNode, setEditingNode] = useState(null);
+  const [editingNode, setEditingNode] = useState<FlowNode | null>(null);
+
   const [disabled, setDisabled] = useState(false);
   const [newLabel, setNewLabel] = useState("");
 
   const fetchData = async () => {
     try {
       const [nodesResponse, edgesResponse, valuesResponse] = await Promise.all([
-        axios.get("/api/loaded-hvac-nodes"),
+        axios.get<Node[]>("/api/loaded-hvac-nodes"),
         axios.get("/api/loaded-hvac-edges"),
         axios.get("/api/hvac-values"),
       ]);
 
-      const valuesMap = valuesResponse.data.reduce((acc, item) => {
+      const valuesMap = valuesResponse.data.reduce((acc: Record<string, ValueItem>, item: ValueItem) => {
         acc[item.label] = item;
         return acc;
-      }, {});
+      }, {} as Record<string, ValueItem>);
+
 
       setNodes(
-        nodesResponse.data.map((node) => {
+        nodesResponse.data.map((node: Node) => {
           const nodeData = valuesMap[node.label] || {};
           let backgroundColor = "#41d4a8";
 
@@ -124,7 +152,7 @@ const DnDFlow = () => {
       );
 
       setEdges(
-        edgesResponse.data.map((edge) => ({
+        edgesResponse.data.map((edge: Edge) => ({
           id: edge.id.toString(),
           source: edge.source,
           target: edge.target,
@@ -147,11 +175,11 @@ const DnDFlow = () => {
 
         const color = node.style.backgroundColor || "#41d4a8";
 
-        const handleLeft = reactFlowWrapper.current.querySelector(`.react-flow__handle-left[data-nodeid="${node.id}"]`);
-        const handleRight = reactFlowWrapper.current.querySelector(`.react-flow__handle-right[data-nodeid="${node.id}"]`);
+        const handleLeft = reactFlowWrapper.current!.querySelector(`.react-flow__handle-left[data-nodeid="${node.id}"]`);
+        const handleRight = reactFlowWrapper.current!.querySelector(`.react-flow__handle-right[data-nodeid="${node.id}"]`);
 
-        if (handleLeft) handleLeft.style.backgroundColor = color;
-        if (handleRight) handleRight.style.backgroundColor = color;
+        if (handleLeft) (handleLeft as HTMLElement).style.backgroundColor = color;
+        if (handleRight) (handleRight as HTMLElement).style.backgroundColor = color;
 
         console.log(`Node ${node.id} handle color set to: ${color}`);
       });
@@ -170,11 +198,11 @@ const DnDFlow = () => {
 
 
   const onDrop = useCallback(
-    async (event) => {
+    async (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       if (!type) return;
 
-      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const reactFlowBounds = reactFlowWrapper.current!.getBoundingClientRect();
       const position = {
         x: event.clientX - reactFlowBounds.left,
         y: event.clientY - reactFlowBounds.top,
@@ -210,8 +238,11 @@ const DnDFlow = () => {
     [type]
   );
 
+
+
+
   const handleConnect = useCallback(
-    (params) => {
+    (params: Connection) => {
       setEdges((eds) => addEdge(params, eds));
 
       axios
@@ -229,24 +260,26 @@ const DnDFlow = () => {
     },
     [setEdges]
   );
-  const onDragOver = useCallback((event) => {
+
+  const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
   }, []);
 
-  const onNodeDragStop = (event, node) => {
+
+  const onNodeDragStop: NodeDragHandler = (event, node) => {
     const { id, position } = node;
     setNodes((nds) => nds.map((n) => (n.id === id ? { ...n, position } : n)));
     axios
       .put(`/api/hvac-nodes/${id}`, position)
       .then(() => toast.success("Node position updated!"))
-      .catch((error) => toast.error("Error updating node position."));
+      .catch(() => toast.error("Error updating node position."));
   };
 
-  const deleteNode = async (id) => {
+  const deleteNode = async (id: number) => {
     try {
       await axios.delete(`/api/hvac-nodes/${id}`);
-      setNodes((nds) => nds.filter((node) => node.id !== id));
+      setNodes((nds) => nds.filter((node) => node.id.toString() !== id.toString()));
       toast.success("Node deleted successfully!");
     } catch (error) {
       console.error("Error deleting node:", error);
@@ -254,10 +287,11 @@ const DnDFlow = () => {
     }
   };
 
-  const deleteEdge = async (id) => {
+
+  const deleteEdge = async (id: number) => {
     try {
       await axios.delete(`/api/hvac-edges/${id}`);
-      setEdges((eds) => eds.filter((edge) => edge.id !== id));
+      setEdges((eds) => eds.filter((edge) => edge.id.toString() !== id.toString()));
       toast.success("Edge deleted successfully!");
     } catch (error) {
       console.error("Error deleting edge:", error);
@@ -265,30 +299,56 @@ const DnDFlow = () => {
     }
   };
 
-  const onEdgesDelete = (deletedEdges) => {
-    deletedEdges.forEach((edge) => deleteEdge(edge.id));
+  const onEdgesDelete = (deletedEdges: FlowEdge[]) => {
+    deletedEdges.forEach((edge) => {
+      const id = typeof edge.id === "string" ? parseInt(edge.id, 10) : edge.id;
+      deleteEdge(id);
+    });
   };
 
-  const onNodesDelete = (deletedNodes) => {
-    deletedNodes.forEach((node) => deleteNode(node.id));
+
+  const onNodesDelete = (deletedNodes: FlowNode[]) => {
+    deletedNodes.forEach((node) => {
+      const id = typeof node.id === "string" ? parseInt(node.id, 10) : node.id;
+      deleteEdge(id);
+    });
   };
 
-  const handleNodeClick = (event, node) => {
+  const handleNodeClick: NodeMouseHandler = (event, node) => {
+
     setEditingNode(node);
 
-    let labelText = node.data.label;
+    let labelText = node.data?.label;
 
     if (React.isValidElement(labelText)) {
-      labelText = labelText.props.children[0].props.children;
+      const reactElement = labelText as React.ReactElement<any>;
+
+      if (
+        reactElement.props &&
+        Array.isArray(reactElement.props.children) &&
+        reactElement.props.children.length > 0 &&
+        reactElement.props.children[0].props &&
+        typeof reactElement.props.children[0].props.children === "string"
+      ) {
+        labelText = reactElement.props.children[0].props.children;
+      } else {
+        labelText = "";
+      }
     }
 
-    setNewLabel(labelText);
-    console.log(labelText);
+    if (typeof labelText === "string") {
+      setNewLabel(labelText);
+    } else {
+      setNewLabel("");
+    }
   };
 
-  const handleLabelChange = (e) => {
+
+
+  const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewLabel(e.target.value);
   };
+
 
   const handleSaveLabel = async () => {
     if (editingNode) {

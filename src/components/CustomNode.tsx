@@ -1,4 +1,14 @@
-const CustomNode = ({ data }) => {
+interface CustomNodeData {
+  label: string;
+  percentage: number;
+  defect: number | string;
+}
+
+interface CustomNodeProps {
+  data: CustomNodeData;
+}
+
+const CustomNode: React.FC<CustomNodeProps> = ({ data }) => {
   return (
     <div
       className="custom-node"
@@ -16,4 +26,5 @@ const CustomNode = ({ data }) => {
     </div>
   );
 };
+
 export default CustomNode;

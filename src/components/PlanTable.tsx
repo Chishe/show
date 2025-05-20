@@ -437,7 +437,7 @@ export default function PlanTable({ nametableurl }: PlanTableProps) {
           </tbody>
         </table>
         {popupData?.isOpen && (
-          <div className="fixed inset-0 flex justify-center items-center z-50">
+          <div className="fixed inset-0 flex justify-center items-center z-50 text-white">
             <div className="bg-[#182039] p-6 rounded shadow-md w-80">
               <h2 className="text-lg font-semibold text-center mb-4">
                 Edit {popupData.type.toUpperCase()}

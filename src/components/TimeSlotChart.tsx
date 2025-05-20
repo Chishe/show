@@ -319,7 +319,7 @@ const TimeSlotChart = ({ nametableurl }: TimeSlotChartProps) => {
         onClick={handleClick}
       />
       {showPopup && selectedPoint !== null && (
-        <div className="fixed top-0 left-0 w-full h-full flex justify-center items-center z-50">
+        <div className="text-white fixed top-0 left-0 w-full h-full flex justify-center items-center z-50">
           <div className="bg-[#182039] p-6 rounded-lg w-96 max-w-full shadow-lg flex flex-col">
             <h3 className="text-lg font-semibold mb-4">
               Details for Time Slot: {timeSlotRefs[selectedPoint]}

@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from "react";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
 import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -38,6 +41,20 @@ export default function LossMemo({ nametableurl }: LossMemoProps) {
     }
   };
 
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "LossMemo");
+
+    const excelBuffer = XLSX.write(workbook, {
+      bookType: "xlsx",
+      type: "array",
+    });
+    const dataBlob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    saveAs(dataBlob, `LossMemo_${new Date().toISOString()}.xlsx`);
+  };
   const handleEdit = (
     itemno: number,
     field: keyof LossMemoItem,
@@ -95,6 +112,14 @@ export default function LossMemo({ nametableurl }: LossMemoProps) {
 
   return (
     <div className="w-full bg-[#100C2A] py-4 rounded-lg">
+      <div className="flex justify-end px-4 mb-2">
+        <button
+          onClick={exportToExcel}
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+        >
+          Export to Excel
+        </button>
+      </div>
       <div className="overflow-x-auto max-h-[80vh] w-full p-4">
         <table className="w-full table-auto border-collapse text-xs text-center">
           <thead>
