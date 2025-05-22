@@ -8,9 +8,10 @@ import KadaiList from "@/components/KadaiList";
 const Operation = () => {
   const [dateTime, setDateTime] = useState("");
 
-  const handleDateChange = (event) => {
+  const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setDateTime(event.target.value);
   };
+  
 
   return (
     <div className="h-full flex justify-center p-4">

@@ -81,7 +81,7 @@ const calculateEndTime = (
   const limitDate = new Date();
   limitDate.setHours(18, 50, 0, 0);
 
-  if (endDate > limitDate) return "18:50";
+  if (endDate > limitDate) return "06:50";
 
   const hh = String(endDate.getHours()).padStart(2, "0");
   const mm = String(endDate.getMinutes()).padStart(2, "0");
@@ -132,7 +132,7 @@ export default function Modal({ nametableurl,dateTime }: ModalProps) {
     }));
 
     try {
-      const res = await fetch(`/api/insert-plan?table=${nametableurl}`, {
+      const res = await fetch(`/api/insert-plan-2?table=${nametableurl}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -229,7 +229,7 @@ export default function Modal({ nametableurl,dateTime }: ModalProps) {
       newStartDate.setHours(newStartHour, newStartMin, 0, 0);
 
       if (newStartDate >= endLimit) {
-        alert("Cannot add more rows. End time limit reached (18:50).");
+        alert("Cannot add more rows. End time limit reached (06:50).");
         return rows;
       }
 

@@ -174,9 +174,7 @@ const DnDFlow = () => {
 
   useEffect(() => {
     fetchData();
-    // const intervalId = setInterval(fetchData, 1000000); 
 
-    // return () => clearInterval(intervalId); 
   }, [fetchData]);
 
 

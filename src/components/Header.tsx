@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
+import { useShift } from "@/context/ShiftContext"; // 👈
 
 export default function Header() {
-  const [shiftState, setShiftState] = useState<"All" | "☀️" | "🌙">("☀️");
-  const pathname = usePathname(); 
+  const pathname = usePathname();
+  const { shiftState, toggleShift } = useShift(); // 👈
 
   const getPageTitle = () => {
     switch (pathname) {
@@ -16,19 +16,11 @@ export default function Header() {
         return "H-VAC";
       case "/operation":
         return "Operation";
-        case "/loss":
-          return "Dekidaka & Loss Monitoring";
+      case "/loss":
+        return "Dekidaka & Loss Monitoring";
       default:
         return "Home";
     }
-  };
-
-  const toggleShift = () => {
-    setShiftState((prevState) => {
-      if (prevState === "☀️") return "🌙";
-      if (prevState === "🌙") return "All";
-      return "☀️";
-    });
   };
 
   return (
@@ -51,7 +43,6 @@ export default function Header() {
         </div>
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-2">
-            {/* Toggle button */}
             <button
               type="button"
               onClick={toggleShift}
@@ -59,22 +50,6 @@ export default function Header() {
             >
               <span>Shift:</span>
               <span>{shiftState}</span>
-            </button>
-          </div>
-          <div className="hidden md:flex items-center gap-2">
-            <button
-              type="button"
-              className="px-3 py-2 border-2 border-gray-100 bg-gray-100 rounded-full text-sm font-semibold flex items-center justify-between gap-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              👇
-            </button>
-          </div>
-          <div className="hidden md:flex items-center gap-2">
-            <button
-              type="button"
-              className="px-3 py-2 border-2 border-gray-100 bg-gray-100 rounded-full text-sm font-semibold flex items-center justify-between gap-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              😈
             </button>
           </div>
         </div>

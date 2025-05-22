@@ -22,8 +22,9 @@ interface LossMemoItem {
 
 interface LossMemoProps {
   nametableurl: string;
+  dateTime: string;
 }
-export default function LossMemo({ nametableurl }: LossMemoProps) {
+export default function LossMemo({ nametableurl, dateTime }: LossMemoProps) {
   const [data, setData] = useState<LossMemoItem[]>([]);
   const [editing, setEditing] = useState<{
     itemno: number;
@@ -33,13 +34,16 @@ export default function LossMemo({ nametableurl }: LossMemoProps) {
 
   const fetchData = async () => {
     try {
-      const response = await axios.get(`/api/getRecords?table=${nametableurl}`);
+      const response = await axios.get(
+        `/api/getRecords?nametableurl=${encodeURIComponent(nametableurl)}&date=${encodeURIComponent(dateTime)}`
+      );
+  
       setData(response.data);
     } catch (error) {
-      console.error("Failed to fetch records: ", error);
       toast.error("Failed to fetch records");
     }
   };
+  
 
   const exportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -87,7 +91,8 @@ export default function LossMemo({ nametableurl }: LossMemoProps) {
     fetchData();
     const interval = setInterval(fetchData, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [nametableurl, dateTime]);
+  
 
   const getColorClass = (field: string, value: string) => {
     switch (field) {
@@ -115,7 +120,7 @@ export default function LossMemo({ nametableurl }: LossMemoProps) {
       <div className="flex justify-end px-4 mb-2">
         <button
           onClick={exportToExcel}
-          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+          className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-900"
         >
           Export to Excel
         </button>

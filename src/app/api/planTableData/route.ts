@@ -24,12 +24,14 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const nametableurl = searchParams.get("nametableurl") || "core_1";
+    const date = searchParams.get("date");
 
     if (!/^[a-zA-Z0-9_]+$/.test(nametableurl)) {
-      return NextResponse.json(
-        { error: "Invalid table name" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid table name" }, { status: 400 });
+    }
+
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return NextResponse.json({ error: "Invalid or missing date" }, { status: 400 });
     }
 
     const rowsQuery = `
@@ -38,11 +40,11 @@ export async function GET(request: NextRequest) {
              jsonb_object_agg(ts.timeSlot, jsonb_build_object('target', ts.target, 'actual', ts.actual)) AS timeslots
       FROM rows_${nametableurl} r
       JOIN timeSlots_${nametableurl} ts ON r.seq = ts.row_id
-      WHERE ts.date = CURRENT_DATE
+      WHERE ts.date = $1
       GROUP BY r.seq;
     `;
 
-    const rowsResult = await pool.query(rowsQuery);
+    const rowsResult = await pool.query(rowsQuery, [date]);
 
     const rows: Row[] = rowsResult.rows.map((row) => {
       const timeslots: TimeSlots = {};

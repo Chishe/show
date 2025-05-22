@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from "@/lib/db";
 
-export async function POST(req: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
-    const table = req.nextUrl.searchParams.get("table");
-    const newRecord = await req.json();
+    const { searchParams } = new URL(request.url);
+    const nametableurl = searchParams.get("nametableurl") || "core_1";
+    const newRecord = await request.json();
 
+    if (!/^[a-zA-Z0-9_]+$/.test(nametableurl)) {
+      return NextResponse.json({ error: "Invalid table name" }, { status: 400 });
+    }
     const query = `
-      INSERT INTO records_${table} (
+      INSERT INTO records_${nametableurl} (
         situation, problemtype, factor, partno, details, 
         action, pic, due, status, effectivelot
       ) 
@@ -39,7 +43,7 @@ export async function POST(req: NextRequest) {
       core_6: "BRS Core 6",
     };
     
-    const columnName = columnMap[table || ""] || "BRS Core 1";
+    const columnName = columnMap[nametableurl || ""] || "BRS Core 1";
 
     const situation = newRecord.situation?.toLowerCase();
     const lineStatus =

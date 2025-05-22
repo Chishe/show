@@ -46,8 +46,10 @@ interface ChartState {
 }
 interface TimeSlotChartProps {
   nametableurl: string;
+  dateTime: string;
 }
-const TimeSlotChart = ({ nametableurl }: TimeSlotChartProps) => {
+
+const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
   const [chartData, setChartData] = useState<ChartState | null>(null);
   const [timeSlotRefs, setTimeSlotRefs] = useState<string[]>([]);
   const [partnumberRefs, setpartnumbeRefs] = useState<string[]>([]);
@@ -61,7 +63,12 @@ const TimeSlotChart = ({ nametableurl }: TimeSlotChartProps) => {
 
   useEffect(() => {
     const fetchChartData = () => {
-      fetch(`/api/chartdata?table=${nametableurl}`)
+      console.log("Fetching chartdata with:", nametableurl, dateTime); // log ค่า
+      fetch(
+        `/api/chartdata?nametableurl=${encodeURIComponent(
+          nametableurl
+        )}&date=${encodeURIComponent(dateTime)}`
+      )
         .then((res) => {
           if (!res.ok) throw new Error("Network response was not ok");
           return res.json();
@@ -73,7 +80,7 @@ const TimeSlotChart = ({ nametableurl }: TimeSlotChartProps) => {
           const slots: string[] = [];
           const pn: string[] = [];
           let counter = 1;
-
+  
           data.forEach((d) => {
             const tArr = d.targetA[0];
             const aArr = d.actualA[0];
@@ -89,7 +96,7 @@ const TimeSlotChart = ({ nametableurl }: TimeSlotChartProps) => {
               }
             });
           });
-
+  
           setTimeSlotRefs(slots);
           setpartnumbeRefs(pn);
           setChartData({
@@ -124,13 +131,13 @@ const TimeSlotChart = ({ nametableurl }: TimeSlotChartProps) => {
           console.error("Error fetching chart data:", error);
         });
     };
-
+  
     fetchChartData();
-
+  
     const interval = setInterval(fetchChartData, 1000);
-
+  
     return () => clearInterval(interval);
-  }, []);
+  }, [nametableurl,dateTime]);
 
   const options: ChartOptions<"line"> = {
     responsive: true,
@@ -260,9 +267,9 @@ const TimeSlotChart = ({ nametableurl }: TimeSlotChartProps) => {
     )
       .toString()
       .padStart(2, "0")}/${now.getFullYear()}:${now
-      .getHours()
-      .toString()
-      .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+        .getHours()
+        .toString()
+        .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
     const newRecord = {
       situation: selectedLoss,
@@ -291,11 +298,9 @@ const TimeSlotChart = ({ nametableurl }: TimeSlotChartProps) => {
         return res.json();
       })
       .then((data) => {
-        console.log("✅ Inserted:", data);
         toast.success("Record successfully inserted!");
       })
       .catch((error) => {
-        console.error("❌ Error inserting record:", error);
         toast.error("Error inserting record!");
       });
 

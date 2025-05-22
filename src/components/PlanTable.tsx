@@ -100,15 +100,20 @@ const renderStatusDropdown = (
 };
 type PlanTableProps = {
   nametableurl: string;
+  dateTime: string;
 };
-export default function PlanTable({ nametableurl }: PlanTableProps) {
+export default function PlanTable({ nametableurl, dateTime }: PlanTableProps) {
   const [rows, setRows] = useState<Row[]>([]);
 
   useEffect(() => {
     const interval = setInterval(() => {
+      if (!dateTime || !nametableurl) return;
+
       axios
         .get(
-          `/api/planTableData?nametableurl=${encodeURIComponent(nametableurl)}`
+          `/api/planTableData?nametableurl=${encodeURIComponent(
+            nametableurl
+          )}&date=${encodeURIComponent(dateTime)}`
         )
         .then((res) => {
           const rawData: RawRow[] = res.data;
@@ -126,7 +131,8 @@ export default function PlanTable({ nametableurl }: PlanTableProps) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [dateTime, nametableurl]);
+
 
   const updateTimeSlotValue = (
     seq: number,

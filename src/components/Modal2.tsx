@@ -81,7 +81,7 @@ const calculateEndTime = (
   const limitDate = new Date();
   limitDate.setHours(18, 50, 0, 0);
 
-  if (endDate > limitDate) return "18:50";
+  if (endDate > limitDate) return "06:50";
 
   const hh = String(endDate.getHours()).padStart(2, "0");
   const mm = String(endDate.getMinutes()).padStart(2, "0");
@@ -102,7 +102,7 @@ export default function Modal({ nametableurl,dateTime }: ModalProps) {
       model: "",
       qty: "",
       ctTarget: "",
-      startTime: "07:35",
+      startTime: "19:35",
       endTime: "",
       stockPart: "",
       sequence: 1,
@@ -132,7 +132,7 @@ export default function Modal({ nametableurl,dateTime }: ModalProps) {
     }));
 
     try {
-      const res = await fetch(`/api/insert-plan?table=${nametableurl}`, {
+      const res = await fetch(`/api/insert-plan-1?table=${nametableurl}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -175,7 +175,7 @@ export default function Modal({ nametableurl,dateTime }: ModalProps) {
             updated.qty,
             updated.ctTarget
           );
-          if (calculatedEnd === "18:50") {
+          if (calculatedEnd === "06:50") {
             const [startH, startM] = updated.startTime.split(":").map(Number);
             const startDate = new Date();
             startDate.setHours(startH, startM, 0, 0);
@@ -190,7 +190,7 @@ export default function Modal({ nametableurl,dateTime }: ModalProps) {
             const maxQty = Math.floor(availableSeconds / ct);
 
             updated.qty = maxQty.toString();
-            updated.endTime = "18:50";
+            updated.endTime = "06:50";
           } else {
             updated.endTime = calculatedEnd;
           }
@@ -210,7 +210,7 @@ export default function Modal({ nametableurl,dateTime }: ModalProps) {
             model: "",
             qty: "",
             ctTarget: "",
-            startTime: "07:35",
+            startTime: "19:35",
             endTime: "",
             stockPart: "",
             sequence: 1,
@@ -219,7 +219,7 @@ export default function Modal({ nametableurl,dateTime }: ModalProps) {
       }
 
       const prevRow = rows[rows.length - 1];
-      const newStartTime = prevRow.endTime || "07:35";
+      const newStartTime = prevRow.endTime || "19:35";
 
       const [newStartHour, newStartMin] = newStartTime.split(":").map(Number);
       const endLimit = new Date();
@@ -229,7 +229,7 @@ export default function Modal({ nametableurl,dateTime }: ModalProps) {
       newStartDate.setHours(newStartHour, newStartMin, 0, 0);
 
       if (newStartDate >= endLimit) {
-        alert("Cannot add more rows. End time limit reached (18:50).");
+        alert("Cannot add more rows. End time limit reached (06:50).");
         return rows;
       }
 
