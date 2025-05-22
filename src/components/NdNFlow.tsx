@@ -6,6 +6,10 @@ import React, {
   useCallback,
 } from "react";
 import ReactFlow, {
+  NodeChange,
+  Connection,
+  Edge,
+  Node,
   addEdge,
   useEdgesState,
   useNodesState,
@@ -31,15 +35,20 @@ const nodeDefaults = {
   },
 };
 
-const handleChange = (event) => {
+const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
   const selectedPage = event.target.value;
   window.location.href = selectedPage;
 };
 
+
 let id = 0;
 const getId = () => `dndnode_${id++}`;
-
-const customNode = ({ data }) => (
+interface DataType {
+  label?: string;
+  Or?: string | number;
+  Defect?: string | number;
+}
+const customNode = ({ data }: { data: DataType }) => (
   <div
     style={{
       padding: "10px",
@@ -59,16 +68,42 @@ const customNode = ({ data }) => (
     </div>
   </div>
 );
+interface ItemType {
+  label: string;
+  [key: string]: any;
+}
+
+interface NodeType {
+  id: number | string;
+  type: string;
+  label?: string;
+  Or?: string | number;
+  Defect?: string | number;
+  x: number;
+  y: number;
+  [key: string]: any;
+}
+interface EdgeType {
+  id: string | number;
+  source: string;
+  target: string;
+}
+interface CustomNodeData {
+  label?: React.ReactNode;
+}
+
+interface CustomNode extends Node<CustomNodeData> {
+  handleRightColor?: string;
+}
 
 const DnDFlow = () => {
-  const reactFlowWrapper = useRef(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { type } = useDnD();
-  const [editingNode, setEditingNode] = useState(null);
+  const [editingNode, setEditingNode] = React.useState<Node | null>(null);
   const [disabled, setDisabled] = useState(false);
-  const [newLabel, setNewLabel] = useState("");
-
+  const [newLabel, setNewLabel] = React.useState<string>("");
+  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const [nodes, setNodes] = useState<CustomNode[]>([]);
   const fetchData = async () => {
     try {
       const [nodesResponse, edgesResponse, valuesResponse] = await Promise.all([
@@ -77,20 +112,22 @@ const DnDFlow = () => {
         axios.get("/api/status-stock"),
       ]);
 
-      const valuesMap = valuesResponse.data.reduce((acc, item) => {
+      const valuesMap = valuesResponse.data.reduce((acc: Record<string, ItemType>, item: ItemType) => {
         acc[item.label] = item;
         return acc;
-      }, {});
+      }, {} as Record<string, ItemType>);
+
 
       setNodes(
-        nodesResponse.data.map((node) => {
-          const nodeData = valuesMap[node.label] || {};
+        nodesResponse.data.map((node: NodeType) => {
+          const nodeData = node.label ? valuesMap[node.label] || {} : {};
           let backgroundColor = "#41d4a8";
           let handleRightColor = "#41d4a8";
+
           if (nodeData.result !== undefined) {
-            if (nodeData.result == 0) {
+            if (nodeData.result === 0) {
               handleRightColor = "#00FF00";
-            } else if (nodeData.result == 1) {
+            } else if (nodeData.result === 1) {
               handleRightColor = "#DC143C";
             }
           }
@@ -105,7 +142,7 @@ const DnDFlow = () => {
                     <div className="bg-[#4B0082] text-white rounded-t-sm mt-[-3px] w-full">
                       {node.label}
                     </div>
-            
+
                     <div className="nowrap-text bg-emerald-200 rounded-b-sm w-full">
                       {node.Or || "0%"} | {node.Defect || 0}
                     </div>
@@ -131,13 +168,12 @@ const DnDFlow = () => {
             ...nodeDefaults,
             style: { ...nodeDefaults.style, backgroundColor },
             handleRightColor,
-          }
-
+          };
         })
       );
 
       setEdges(
-        edgesResponse.data.map((edge) => ({
+        edgesResponse.data.map((edge: EdgeType) => ({
           id: edge.id.toString(),
           source: edge.source,
           target: edge.target,
@@ -152,15 +188,18 @@ const DnDFlow = () => {
 
   useEffect(() => {
     const updateHandlesColor = () => {
-      if (!reactFlowWrapper.current) return;
+      const wrapper = reactFlowWrapper.current;
+      if (!wrapper) return;
 
       nodes.forEach((node) => {
         if (!node.handleRightColor) return;
 
-        const handleRight = reactFlowWrapper.current.querySelector(`.react-flow__handle-right[data-nodeid="${node.id}"]`);
+        const handleRight = wrapper.querySelector(
+          `.react-flow__handle-right[data-nodeid="${node.id}"]`
+        );
 
         if (handleRight) {
-          handleRight.style.backgroundColor = node.handleRightColor;
+          (handleRight as HTMLElement).style.backgroundColor = node.handleRightColor;
         }
 
         console.log(`Node ${node.id} handle color set to: ${node.handleRightColor}`);
@@ -172,6 +211,7 @@ const DnDFlow = () => {
     }
   }, [nodes]);
 
+
   useEffect(() => {
     fetchData();
 
@@ -179,9 +219,11 @@ const DnDFlow = () => {
 
 
   const onDrop = useCallback(
-    async (event) => {
+    async (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       if (!type) return;
+
+      if (!reactFlowWrapper.current) return;
 
       const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
       const position = {
@@ -220,7 +262,7 @@ const DnDFlow = () => {
   );
 
   const handleConnect = useCallback(
-    (params) => {
+    (params: Connection | Edge) => {
       setEdges((eds) => addEdge(params, eds));
 
       axios
@@ -238,21 +280,23 @@ const DnDFlow = () => {
     },
     [setEdges]
   );
-  const onDragOver = useCallback((event) => {
+
+  const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = "move";
   }, []);
 
-  const onNodeDragStop = (event, node) => {
+  const onNodeDragStop = (_event: React.MouseEvent | React.DragEvent, node: Node) => {
     const { id, position } = node;
     setNodes((nds) => nds.map((n) => (n.id === id ? { ...n, position } : n)));
+
     axios
       .put(`/api/brs-nodes/${id}`, position)
       .then(() => toast.success("Node position updated!"))
-      .catch((error) => toast.error("Error updating node position."));
+      .catch(() => toast.error("Error updating node position."));
   };
 
-  const deleteNode = async (id) => {
+  const deleteNode = async (id: string) => {
     try {
       await axios.delete(`/api/brs-nodes/${id}`);
       setNodes((nds) => nds.filter((node) => node.id !== id));
@@ -263,7 +307,7 @@ const DnDFlow = () => {
     }
   };
 
-  const deleteEdge = async (id) => {
+  const deleteEdge = async (id: string) => {
     try {
       await axios.delete(`/api/brs-edges/${id}`);
       setEdges((eds) => eds.filter((edge) => edge.id !== id));
@@ -274,28 +318,32 @@ const DnDFlow = () => {
     }
   };
 
-  const onEdgesDelete = (deletedEdges) => {
-    deletedEdges.forEach((edge) => deleteEdge(edge.id));
+  const onEdgesDelete = (deletedEdges: Edge[]) => {
+    deletedEdges.forEach((edge: Edge) => deleteEdge(edge.id));
   };
 
-  const onNodesDelete = (deletedNodes) => {
-    deletedNodes.forEach((node) => deleteNode(node.id));
+  const onNodesDelete = (deletedNodes: Node[]) => {
+    deletedNodes.forEach((node: Node) => deleteNode(node.id));
   };
 
-  const handleNodeClick = (event, node) => {
+  const handleNodeClick = (
+    _event: React.MouseEvent | React.PointerEvent,
+    node: Node
+  ) => {
     setEditingNode(node);
 
     let labelText = node.data.label;
 
     if (React.isValidElement(labelText)) {
-      labelText = labelText.props.children[0].props.children;
+      const element = labelText as React.ReactElement<any, any>;
+      labelText = element.props.children?.[0]?.props?.children ?? '';
     }
 
     setNewLabel(labelText);
     console.log(labelText);
   };
 
-  const handleLabelChange = (e) => {
+  const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewLabel(e.target.value);
   };
 
@@ -352,7 +400,7 @@ const DnDFlow = () => {
           <ReactFlow
             nodes={nodes}
             edges={edges}
-            onNodesChange={onNodesChange}
+            // onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={handleConnect}
             onNodeDragStop={onNodeDragStop}
@@ -388,22 +436,35 @@ const DnDFlow = () => {
             placeholder="Enter new label"
           />
 
-          <div className="flex justify-between gap-4">
+          <div className="flex justify-between gap-3">
             <button
               onClick={handleSaveLabel}
-              className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-200"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
             >
               Save
             </button>
             <button
               onClick={() => setEditingNode(null)}
-              className="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded-lg transition duration-200"
+              className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
             >
               Cancel
             </button>
+            <button
+              onClick={() => {
+                if (editingNode) {
+                  deleteNode(editingNode.id);
+                  setEditingNode(null);
+                }
+              }}
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
+            >
+              Delete
+            </button>
           </div>
+
         </div>
       )}
+
     </div>
   );
 };
