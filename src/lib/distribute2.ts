@@ -1,3 +1,4 @@
+// ✅ กำหนดช่วงเวลา Time Slots
 export const TIME_SLOTS: string[] = [
   "19:35-20:30",
   "20:30-21:30",
@@ -10,177 +11,173 @@ export const TIME_SLOTS: string[] = [
   "05:50-06:50",
 ];
 
+// ✅ แปลง "HH:mm" เป็นนาทีในวัน
 function toMinutes(timeStr: string): number {
-console.log("toMinutes input:", timeStr);
-if (!timeStr || !timeStr.includes(":")) {
-  throw new Error(`Invalid time string: ${timeStr}`);
-}
-const [h, m] = timeStr.split(":").map(Number);
-return h * 60 + m;
+  const [h, m] = timeStr.split(":").map(Number);
+  if (isNaN(h) || isNaN(m)) throw new Error(`Invalid time: ${timeStr}`);
+  return h * 60 + m;
 }
 
+// ✅ แปลงนาทีในวันกลับเป็น "HH:mm"
 function toTimeStr(minutes: number): string {
-const h = String(Math.floor(minutes / 60)).padStart(2, "0");
-const m = String(minutes % 60).padStart(2, "0");
-return `${h}:${m}`;
+  const total = ((minutes % 1440) + 1440) % 1440;
+  const h = String(Math.floor(total / 60)).padStart(2, "0");
+  const m = String(total % 60).padStart(2, "0");
+  return `${h}:${m}`;
 }
 
+// ✅ แบ่ง Time Slot ใหญ่เป็นช่วงย่อย ๆ ตาม interval (เช่น 10 นาที)
 function splitTimeSlot(slot: string, interval = 10): string[] {
-const [start, end] = slot.split("-");
-let startMin = toMinutes(start);
-const endMin = toMinutes(end);
+  let [start, end] = slot.split("-").map(toMinutes);
+  if (end <= start) end += 1440; // ข้ามวัน
 
-const result: string[] = [];
-while (startMin < endMin) {
-  const nextMin = Math.min(startMin + interval, endMin);
-  result.push(`${toTimeStr(startMin)}-${toTimeStr(nextMin)}`);
-  startMin = nextMin;
-}
-return result;
+  const result: string[] = [];
+  while (start < end) {
+    const next = Math.min(start + interval, end);
+    result.push(`${toTimeStr(start)}-${toTimeStr(next)}`);
+    start = next;
+  }
+  return result;
 }
 
+// ✅ หานาทีที่ซ้อนทับระหว่างช่วงย่อยกับช่วงหลัก
 function getOverlapMinutes(
-slotStart: number,
-slotEnd: number,
-rangeStart: number,
-rangeEnd: number
+  slotStart: number,
+  slotEnd: number,
+  rangeStart: number,
+  rangeEnd: number
 ): number {
-const start = Math.max(slotStart, rangeStart);
-const end = Math.min(slotEnd, rangeEnd);
-return Math.max(0, end - start);
+  if (slotEnd < slotStart) slotEnd += 1440;
+  if (rangeEnd < rangeStart) rangeEnd += 1440;
+
+  const overlapStart = Math.max(slotStart, rangeStart);
+  const overlapEnd = Math.min(slotEnd, rangeEnd);
+  return Math.max(0, overlapEnd - overlapStart);
 }
 
+// ✅ กระจาย qty ตาม CT และ Time Slots ย่อย
 function distributeQtyByQtyAndCT(
-timeSlots: readonly string[],
-starttime: string,
-endtime: string,
-qty: number,
-cttarget: number
+  timeSlots: readonly string[],
+  starttime: string,
+  endtime: string,
+  qty: number,
+  cttarget: number
 ): (number | null)[][] {
-const rangeStart = toMinutes(starttime);
-const rangeEnd = toMinutes(endtime);
-const totalRangeSeconds = (rangeEnd - rangeStart) * 60;
+  const rangeStart = toMinutes(starttime);
+  let rangeEnd = toMinutes(endtime);
+  if (rangeEnd <= rangeStart) rangeEnd += 1440;
 
-if (totalRangeSeconds <= 0 || qty <= 0 || cttarget <= 0) {
-  return timeSlots.map((slot) => {
-    const subSlots = splitTimeSlot(slot);
-    return subSlots.map(() => null);
-  });
-}
+  const totalSecs = (rangeEnd - rangeStart) * 60;
+  const result: (number | null)[][] = [];
 
-const result: (number | null)[][] = [];
-let producedSoFar = 0;
-const maxQty = Math.min(qty, Math.floor(totalRangeSeconds / cttarget));
-
-for (const slot of timeSlots) {
-  const subSlots = splitTimeSlot(slot);
-  const subSlotQty: (number | null)[] = [];
-
-  for (const subSlotStr of subSlots) {
-    const [subStartStr, subEndStr] = subSlotStr.split("-");
-    const subStart = toMinutes(subStartStr);
-    const subEnd = toMinutes(subEndStr);
-
-    const overlapMinutes = getOverlapMinutes(
-      subStart,
-      subEnd,
-      rangeStart,
-      rangeEnd
-    );
-    const overlapSeconds = overlapMinutes * 60;
-
-    if (overlapSeconds > 0 && producedSoFar < maxQty) {
-      let pieces = Math.floor(overlapSeconds / cttarget);
-      if (producedSoFar + pieces > maxQty) {
-        pieces = maxQty - producedSoFar;
-      }
-      producedSoFar += pieces;
-      subSlotQty.push(pieces > 0 ? pieces : null);
-    } else {
-      subSlotQty.push(null);
-    }
+  if (totalSecs <= 0 || qty <= 0 || cttarget <= 0) {
+    return timeSlots.map(slot => splitTimeSlot(slot).map(() => null));
   }
 
-  result.push(subSlotQty);
+  const maxQty = Math.min(qty, Math.floor(totalSecs / cttarget));
+  let produced = 0;
+
+  for (const slot of timeSlots) {
+    const subSlots = splitTimeSlot(slot);
+    const slotData: (number | null)[] = [];
+
+    for (const sub of subSlots) {
+      let [s, e] = sub.split("-").map(toMinutes);
+      if (e <= s) e += 1440;
+
+      const overlap = getOverlapMinutes(s, e, rangeStart, rangeEnd);
+      const seconds = overlap * 60;
+
+      if (seconds > 0 && produced < maxQty) {
+        let pieces = Math.floor(seconds / cttarget);
+        if (produced + pieces > maxQty) {
+          pieces = maxQty - produced;
+        }
+        produced += pieces;
+        slotData.push(pieces > 0 ? pieces : null);
+      } else {
+        slotData.push(null);
+      }
+    }
+
+    result.push(slotData);
+  }
+
+  return result;
 }
 
-return result;
-}
-
+// ✅ โครงสร้างข้อมูลสำหรับ input และผลลัพธ์รวม
 type Input = {
-partnumber: string;
-qty: number;
-cttarget: number;
-starttime: string;
-endtime: string;
+  partnumber: string;
+  qty: number;
+  cttarget: number;
+  starttime: string;
+  endtime: string;
 };
 
 type GroupedDistribution = {
-[partnumber: string]: {
-  [timeSlot: string]: (number | null)[];
-};
+  [partnumber: string]: {
+    [timeSlot: string]: (number | null)[];
+  };
 };
 
+// ✅ รวม input ที่มีพารามิเตอร์เหมือนกัน (ยกเว้น qty)
 export function mergeInputsByPartnumber(inputs: Input[]): Input[] {
-const map = new Map<string, Input>();
+  const merged = new Map<string, Input>();
 
-for (const input of inputs) {
-  const key = `${input.partnumber}-${input.starttime}-${input.endtime}-${input.cttarget}`;
-  if (!map.has(key)) {
-    map.set(key, { ...input });
-  } else {
-    const existing = map.get(key)!;
-    existing.qty += input.qty;
-  }
-}
-
-return Array.from(map.values());
-}
-
-export function distributeByPartnumbers(inputs: Input[]): GroupedDistribution {
-console.log("distributeByPartnumbers inputs:", inputs);
-const grouped: GroupedDistribution = {};
-
-for (const input of inputs) {
-  console.log("Processing input:", input);
-  const { partnumber, qty, cttarget, starttime, endtime } = input;
-
-  const distribution = distributeQtyByQtyAndCT(
-    TIME_SLOTS,
-    starttime,
-    endtime,
-    qty,
-    cttarget
-  );
-
-  if (!grouped[partnumber]) {
-    grouped[partnumber] = {};
-    for (const slot of TIME_SLOTS) {
-      const subSlotCount = splitTimeSlot(slot).length;
-      grouped[partnumber][slot] = new Array(subSlotCount).fill(null);
+  for (const input of inputs) {
+    const key = `${input.partnumber}-${input.starttime}-${input.endtime}-${input.cttarget}`;
+    if (!merged.has(key)) {
+      merged.set(key, { ...input });
+    } else {
+      merged.get(key)!.qty += input.qty;
     }
   }
 
-  for (let i = 0; i < TIME_SLOTS.length; i++) {
-    const slot = TIME_SLOTS[i];
-    for (let j = 0; j < distribution[i].length; j++) {
-      const val = distribution[i][j];
-      if (val !== null) {
-        const current = grouped[partnumber][slot][j];
-        grouped[partnumber][slot][j] = (current ?? 0) + val;
+  return [...merged.values()];
+}
+
+// ✅ แปลง input เป็นโครงสร้างข้อมูลกระจายตาม TIME_SLOTS
+export function distributeByPartnumbers(inputs: Input[]): GroupedDistribution {
+  const grouped: GroupedDistribution = {};
+
+  for (const input of inputs) {
+    const { partnumber, qty, cttarget, starttime, endtime } = input;
+
+    const distributed = distributeQtyByQtyAndCT(
+      TIME_SLOTS,
+      starttime,
+      endtime,
+      qty,
+      cttarget
+    );
+
+    if (!grouped[partnumber]) {
+      grouped[partnumber] = {};
+      for (const slot of TIME_SLOTS) {
+        grouped[partnumber][slot] = new Array(splitTimeSlot(slot).length).fill(null);
+      }
+    }
+
+    for (let i = 0; i < TIME_SLOTS.length; i++) {
+      const slot = TIME_SLOTS[i];
+      for (let j = 0; j < distributed[i].length; j++) {
+        const val = distributed[i][j];
+        if (val !== null) {
+          grouped[partnumber][slot][j] = (grouped[partnumber][slot][j] ?? 0) + val;
+        }
       }
     }
   }
-}
 
-
-for (const partnumber in grouped) {
-  for (const slot of TIME_SLOTS) {
-    grouped[partnumber][slot] = grouped[partnumber][slot].map((v) =>
-      v === null ? null : Math.round(v)
-    );
+  // ⭕ ปัดเศษค่าที่กระจายแล้ว
+  for (const partnumber in grouped) {
+    for (const slot in grouped[partnumber]) {
+      grouped[partnumber][slot] = grouped[partnumber][slot].map(v =>
+        v === null ? null : Math.round(v)
+      );
+    }
   }
-}
 
-return grouped;
+  return grouped;
 }

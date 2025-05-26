@@ -7,7 +7,8 @@ export async function GET() {
     { title: "Outer Fin", value: "220/200" },
     { title: "Seperator", value: "220/200" },
     { title: "Plate Header", value: "200/200" },
-    { title: "Tank Header", value: "180/200", additional: "Est. Shortage 17m 34s" },
+    { title: "Tank Header", value: "200/200"},
+    // { title: "Tank Header", value: "200/200", additional: "Est. Shortage 17m 34s" },
   ];
 
   return NextResponse.json(data);

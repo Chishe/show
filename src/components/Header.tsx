@@ -2,24 +2,32 @@
 
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { useShift } from "@/context/ShiftContext"; // 👈
-
+import { useShift } from "@/context/ShiftContext";
+import { FaBell } from 'react-icons/fa';
 export default function Header() {
   const pathname = usePathname();
-  const { shiftState, toggleShift } = useShift(); // 👈
+  const { shiftState, toggleShift } = useShift();
 
   const getPageTitle = () => {
     switch (pathname) {
-      case "/brs":
-        return "BRS";
       case "/hvac":
         return "H-VAC";
       case "/operation":
         return "Operation";
-      case "/loss":
-        return "Dekidaka & Loss Monitoring";
+      case "/loss_core_1":
+        return "Loss Monitoring Core#1";
+      case "/loss_core_2":
+        return "Loss Monitoring Core#2";
+      case "/loss_core_3":
+        return "Loss Monitoring Core#3";
+      case "/loss_core_4":
+        return "Loss Monitoring Core#4";
+      case "/loss_core_5":
+        return "Loss Monitoring Core#5";
+      case "/loss_core_6":
+        return "Loss Monitoring Core#6";
       default:
-        return "Home";
+        return "BRS";
     }
   };
 
@@ -50,6 +58,22 @@ export default function Header() {
             >
               <span>Shift:</span>
               <span>{shiftState}</span>
+            </button>
+          </div>
+          <div className="hidden md:flex items-center gap-2">
+            <button
+              type="button"
+              className="px-3 py-2 border-2 border-gray-100 bg-gray-100 rounded-full text-sm font-semibold flex items-center justify-between gap-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <FaBell className="w-5 h-5 text-amber-500" />
+            </button>
+          </div>
+          <div className="hidden md:flex items-center gap-2">
+            <button
+              type="button"
+              className="px-3 py-2 border-2 border-gray-100 bg-gray-100 rounded-full text-sm font-semibold flex items-center justify-between gap-2 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <img src="/142379.jpg" alt="icon" className="w-5 h-5" />
             </button>
           </div>
         </div>

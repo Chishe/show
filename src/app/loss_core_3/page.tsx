@@ -1,11 +1,15 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import Modal from "@/components/Modal";
+import Modal2 from "@/components/Modal2";
 import Modal3 from "@/components/Modal3";
 import PlanTable from "@/components/PlanTable";
 import PlanTable2 from "@/components/PlanTable2";
 import PlanTable3 from "@/components/PlanTable3";
 import LossMemo from "@/components/LossMemo";
 import TimeSlotChart from "@/components/TimeSlotChart";
+import TimeSlotChart2 from "@/components/TimeSlotChart2";
+import TimeSlotChart3 from "@/components/TimeSlotChart3";
 import ComboStatus from "@/components/ComboStatus";
 import { useShift } from "@/context/ShiftContext";
 export default function Loss() {
@@ -16,7 +20,6 @@ export default function Loss() {
     setDateTime(today);
   }, []);
   useEffect(() => {
-    console.log("✅ shiftState changed to:", shiftState);
   }, [shiftState]);
 
   const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,7 +27,30 @@ export default function Loss() {
   };
 
   if (!dateTime) return null;
-
+  const renderModel = () => {
+    switch (shiftState) {
+      case "☀️":
+        return <TimeSlotChart nametableurl="core_3" dateTime={dateTime} />;
+      case "🌙":
+        return <TimeSlotChart2 nametableurl="core_3" dateTime={dateTime} />;
+      case "All":
+        return <TimeSlotChart3 nametableurl="core_3" dateTime={dateTime} />;
+      default:
+        return null;
+    }
+  };
+  const renderModel1 = () => {
+    switch (shiftState) {
+      case "☀️":
+        return <Modal nametableurl="core_3" dateTime={dateTime} />;
+      case "🌙":
+        return <Modal2 nametableurl="core_3" dateTime={dateTime} />;
+      case "All":
+        return <Modal3 nametableurl="core_3" dateTime={dateTime} />;
+      default:
+        return null;
+    }
+  };
   const renderModel2 = () => {
     switch (shiftState) {
       case "☀️":
@@ -58,9 +84,9 @@ export default function Loss() {
         </div>
 
         <div className="w-full max-w-full h-[400px] bg-[#100C2A] rounded-lg p-4">
-          <TimeSlotChart nametableurl="core_3" dateTime={dateTime} />
+          {renderModel()}
         </div>
-        <div><Modal3 nametableurl="core_3" dateTime={dateTime} /></div>
+        <div>{renderModel1()}</div>
         <div>{renderModel2()}</div>
         <div>
           <h2 className="text-2xl font-bold ml-4 my-4 text-white">

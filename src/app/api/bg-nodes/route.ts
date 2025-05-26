@@ -2,19 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
 export async function GET(request: NextRequest) {
-    try {
-        const { searchParams } = new URL(request.url);
+  try {
+    const { searchParams } = new URL(request.url);
 
-        const nametableurl = searchParams.get("nametableurl") || "core_1";
-        if (!/^[a-zA-Z0-9_]+$/.test(nametableurl)) {
-            return NextResponse.json({ error: "Invalid table name" }, { status: 400 });
-        }
+    const nametableurl = searchParams.get("nametableurl") || "core_1";
+    if (!/^[a-zA-Z0-9_]+$/.test(nametableurl)) {
+      return NextResponse.json({ error: "Invalid table name" }, { status: 400 });
+    }
 
-        const date = searchParams.get("date") || new Date().toISOString().slice(0, 10);
+    const date = searchParams.get("date") || new Date().toISOString().slice(0, 10);
 
-        const timeslotTable = `timeSlots__${nametableurl}`;
+    const timeslotTable = `timeSlots_${nametableurl}`;
 
-        const rowsQuery = `
+    const rowsQuery = `
         WITH
         time_ranges AS (
           SELECT
@@ -44,34 +44,34 @@ export async function GET(request: NextRequest) {
             AND slot_start <= params.end_time
           GROUP BY row_id
         )
-        SELECT
-          agg.row_id,
-          agg.total_target,
-          agg.total_actual,
-          CASE
-            WHEN params.now_time >= params.one_hour_later AND agg.total_actual < agg.total_target THEN 'red'
-            WHEN agg.total_actual >= agg.total_target THEN 'green'
-            WHEN agg.total_actual < agg.total_target THEN 'yellow'
-            ELSE 'yellow'
-          END AS node_color,
-          CASE
-            WHEN agg.total_target = 0 THEN '0%'
-            ELSE TO_CHAR(ROUND((agg.total_actual::numeric / agg.total_target) * 100, 2), 'FM999999990.00') || '%'
-          END AS Or
-        FROM agg, params
-        ORDER BY agg.row_id;
+SELECT
+  agg.row_id,
+  agg.total_target,
+  agg.total_actual,
+  CASE
+    WHEN params.now_time >= params.one_hour_later AND agg.total_actual < agg.total_target THEN 'red'
+    WHEN agg.total_actual >= agg.total_target THEN 'green'
+    WHEN agg.total_actual < agg.total_target THEN 'yellow'
+    ELSE 'yellow'
+  END AS node_color,
+  CASE
+    WHEN agg.total_target = 0 THEN '0%'
+    ELSE TO_CHAR(ROUND((agg.total_actual::numeric / agg.total_target) * 100, 2), 'FM999999990.00') || '%'
+  END AS Or
+FROM agg, params
+ORDER BY agg.row_id;
+
       `;
 
-        const rowsResult = await pool.query(rowsQuery, [date]);
+    const rowsResult = await pool.query(rowsQuery, [date]);
 
-        // เพิ่ม return ที่นี่
-        return NextResponse.json(rowsResult.rows);
-    } catch (error: unknown) {
-        console.error("Error fetching data:", error);
-        return NextResponse.json(
-          { error: error instanceof Error ? error.message : "Failed to fetch data" },
-          { status: 500 }
-        );
-      }
-    }      
+    return NextResponse.json(rowsResult.rows);
+  } catch (error: unknown) {
+    console.error("Error fetching data:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to fetch data" },
+      { status: 500 }
+    );
+  }
+}
 

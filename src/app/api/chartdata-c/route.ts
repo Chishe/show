@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid or missing date" }, { status: 400 });
     }
 
+
     const query = `
     SELECT 
       r.partnumber,
@@ -26,18 +27,6 @@ export async function GET(request: NextRequest) {
     WHERE ts.target IS NOT NULL 
       AND ts.actual IS NOT NULL
       AND ts.date = $1
-      AND ts.timeSlot IN (
-        '07:35-08:30',
-        '08:30-09:30',
-        '09:40-10:30',
-        '10:30-11:30',
-        '12:30-13:30',
-        '13:30-14:30',
-        '14:40-15:30',
-        '15:30-16:30',
-        '16:50-17:50',
-        '17:50-18:50'
-      )
     GROUP BY r.partnumber, ts.timeSlot
     ORDER BY r.partnumber,
       CASE ts.timeSlot
@@ -51,10 +40,18 @@ export async function GET(request: NextRequest) {
         WHEN '15:30-16:30' THEN 8
         WHEN '16:50-17:50' THEN 9
         WHEN '17:50-18:50' THEN 10
+        WHEN '19:35-20:30' THEN 11
+        WHEN '20:30-21:30' THEN 12
+        WHEN '21:40-22:30' THEN 13
+        WHEN '00:30-01:30' THEN 14
+        WHEN '01:30-02:30' THEN 15
+        WHEN '02:40-03:30' THEN 16
+        WHEN '03:30-04:30' THEN 17
+        WHEN '04:50-05:50' THEN 18
+        WHEN '05:50-06:50' THEN 19
         ELSE 999
       END;
   `;
-  
 
     const { rows } = await pool.query(query, [date]);
 

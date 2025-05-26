@@ -27,35 +27,32 @@ export async function GET(request: NextRequest) {
       AND ts.actual IS NOT NULL
       AND ts.date = $1
       AND ts.timeSlot IN (
-        '07:35-08:30',
-        '08:30-09:30',
-        '09:40-10:30',
-        '10:30-11:30',
-        '12:30-13:30',
-        '13:30-14:30',
-        '14:40-15:30',
-        '15:30-16:30',
-        '16:50-17:50',
-        '17:50-18:50'
+        '19:35-20:30',
+        '20:30-21:30',
+        '21:40-22:30',
+        '00:30-01:30',
+        '01:30-02:30',
+        '02:40-03:30',
+        '03:30-04:30',
+        '04:50-05:50',
+        '05:50-06:50'
       )
     GROUP BY r.partnumber, ts.timeSlot
     ORDER BY r.partnumber,
       CASE ts.timeSlot
-        WHEN '07:35-08:30' THEN 1
-        WHEN '08:30-09:30' THEN 2
-        WHEN '09:40-10:30' THEN 3
-        WHEN '10:30-11:30' THEN 4
-        WHEN '12:30-13:30' THEN 5
-        WHEN '13:30-14:30' THEN 6
-        WHEN '14:40-15:30' THEN 7
-        WHEN '15:30-16:30' THEN 8
-        WHEN '16:50-17:50' THEN 9
-        WHEN '17:50-18:50' THEN 10
+        WHEN '19:35-20:30' THEN 1
+        WHEN '20:30-21:30' THEN 2
+        WHEN '21:40-22:30' THEN 3
+        WHEN '00:30-01:30' THEN 4
+        WHEN '01:30-02:30' THEN 5
+        WHEN '02:40-03:30' THEN 6
+        WHEN '03:30-04:30' THEN 7
+        WHEN '04:50-05:50' THEN 8
+        WHEN '05:50-06:50' THEN 9
         ELSE 999
       END;
   `;
   
-
     const { rows } = await pool.query(query, [date]);
 
     const chartData = rows.map((row) => ({

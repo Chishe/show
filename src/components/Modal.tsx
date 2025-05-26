@@ -93,7 +93,7 @@ type ModalProps = {
   dateTime: string;
 };
 
-export default function Modal({ nametableurl,dateTime }: ModalProps) {
+export default function Modal({ nametableurl, dateTime }: ModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [rows, setRows] = useState<Row[]>([
     {
@@ -111,14 +111,14 @@ export default function Modal({ nametableurl,dateTime }: ModalProps) {
 
   const loadPlanData = async () => {
     const res = await fetch(`/api/plan?nametableurl=${encodeURIComponent(
-            nametableurl
-          )}&date=${encodeURIComponent(dateTime)}`
-        )
+      nametableurl
+    )}&date=${encodeURIComponent(dateTime)}`
+    )
     if (!res.ok) throw new Error("Failed to fetch");
     const data = await res.json();
     return data;
   };
-  
+
 
   const handleSubmit = async () => {
     const payload = rows.map((row, index) => ({
@@ -328,11 +328,7 @@ export default function Modal({ nametableurl,dateTime }: ModalProps) {
                               className="w-full p-2 bg-white rounded border"
                               value={row[key as keyof Row]}
                               onChange={(e) =>
-                                updateRow(
-                                  row.id,
-                                  key as keyof Row,
-                                  e.target.value
-                                )
+                                updateRow(row.id, key as keyof Row, e.target.value)
                               }
                             >
                               <option value="">Select</option>
@@ -342,24 +338,24 @@ export default function Modal({ nametableurl,dateTime }: ModalProps) {
                                 </option>
                               ))}
                             </select>
+                          ) : key === "startTime" || key === "endTime" ? (
+                            <div className="w-full p-2 bg-gray-100 rounded border text-left text-black">
+                              {row[key as keyof Row] || "-"}
+                            </div>
                           ) : (
                             <input
                               type={type || "text"}
                               className="w-full p-2 bg-white rounded border"
                               value={row[key as keyof Row]}
                               onChange={(e) =>
-                                updateRow(
-                                  row.id,
-                                  key as keyof Row,
-                                  e.target.value
-                                )
+                                updateRow(row.id, key as keyof Row, e.target.value)
                               }
-                              disabled={key === "endTime"}
                               min={type === "number" ? 0 : undefined}
                             />
                           )}
                         </td>
                       ))}
+
                       <td className="p-2">
                         <button
                           onClick={() => deleteRow(row.id)}

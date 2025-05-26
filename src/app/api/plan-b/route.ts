@@ -31,15 +31,16 @@ SELECT id, sequence, partnumber, model, qty, cttarget, starttime, endtime
 FROM plan_${table}
 WHERE plandate = $1
   AND NOT (
-    (starttime < '20:30' AND endtime > '19:35') OR
-    (starttime < '21:30' AND endtime > '20:30') OR
-    (starttime < '22:30' AND endtime > '21:40') OR
-    (starttime < '01:30' AND endtime > '00:30') OR
-    (starttime < '02:30' AND endtime > '01:30') OR
-    (starttime < '03:30' AND endtime > '02:40') OR
-    (starttime < '04:30' AND endtime > '03:30') OR
-    (starttime < '05:50' AND endtime > '04:50') OR
-    (starttime < '06:50' AND endtime > '05:50')
+    (starttime < '08:30' AND endtime > '07:35') OR
+    (starttime < '09:30' AND endtime > '08:30') OR
+    (starttime < '10:30' AND endtime > '09:40') OR
+    (starttime < '11:30' AND endtime > '10:30') OR
+    (starttime < '13:30' AND endtime > '12:30') OR
+    (starttime < '14:30' AND endtime > '13:30') OR
+    (starttime < '15:30' AND endtime > '14:40') OR
+    (starttime < '16:30' AND endtime > '15:30') OR
+    (starttime < '17:50' AND endtime > '16:50') OR
+    (starttime < '18:50' AND endtime > '17:50')
   )
 ORDER BY sequence;
     `;

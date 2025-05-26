@@ -21,16 +21,15 @@ type Row = {
 };
 
 const TIME_SLOTS_ORDER = [
-  "07:35-08:30",
-  "08:30-09:30",
-  "09:40-10:30",
-  "10:30-11:30",
-  "12:30-13:30",
-  "13:30-14:30",
-  "14:40-15:30",
-  "15:30-16:30",
-  "16:50-17:50",
-  "17:50-18:50",
+  "19:35-20:30",
+  "20:30-21:30",
+  "21:40-22:30",
+  "00:30-01:30",
+  "01:30-02:30",
+  "02:40-03:30",
+  "03:30-04:30",
+  "04:50-05:50",
+  "05:50-06:50",
 ];
 
 export async function GET(request: NextRequest) {
@@ -50,55 +49,54 @@ export async function GET(request: NextRequest) {
     const rowsQuery = `
       SELECT r.seq, r.partnumber, r.partdimension, r.firstpiece, r.machinestatus, r.componentstatus, 
              r.target, r.actual, 
-             COALESCE(
-               jsonb_object_agg(ts.timeSlot, jsonb_build_object('target', ts.target, 'actual', ts.actual)), '{}'
-             ) AS timeslots
+             jsonb_object_agg(ts.timeSlot, jsonb_build_object('target', ts.target, 'actual', ts.actual)) AS timeslots
       FROM rows_${nametableurl} r
       JOIN timeSlots_${nametableurl} ts ON r.seq = ts.row_id
       WHERE ts.date = $1
         AND ts.timeSlot IN (
-          '07:35-08:30',
-          '08:30-09:30',
-          '09:40-10:30',
-          '10:30-11:30',
-          '12:30-13:30',
-          '13:30-14:30',
-          '14:40-15:30',
-          '15:30-16:30',
-          '16:50-17:50',
-          '17:50-18:50'
+          '19:35-20:30',
+          '20:30-21:30',
+          '21:40-22:30',
+          '00:30-01:30',
+          '01:30-02:30',
+          '02:40-03:30',
+          '03:30-04:30',
+          '04:50-05:50',
+          '05:50-06:50'
         )
       GROUP BY r.seq;
     `;
 
-    console.time("query-time");
     const rowsResult = await pool.query(rowsQuery, [date]);
-    console.timeEnd("query-time");
 
     const rows: Row[] = rowsResult.rows.map((row) => {
       const timeslots: TimeSlots = {};
 
       TIME_SLOTS_ORDER.forEach((timeSlotKey) => {
-        const slot = row.timeslots?.[timeSlotKey];
+        const slot = row.timeslots ? row.timeslots[timeSlotKey] : undefined;
 
         let target: (number | null)[] = [];
         let actual: (number | null)[] = [];
 
         if (slot) {
-          try {
-            target = Array.isArray(slot.target)
-              ? slot.target
-              : typeof slot.target === "string"
-              ? JSON.parse(slot.target)
-              : [];
+          if (Array.isArray(slot.target)) {
+            target = slot.target;
+          } else {
+            try {
+              target = slot.target ? JSON.parse(slot.target) : [];
+            } catch (e) {
+              console.error("Error parsing target JSON:", e);
+            }
+          }
 
-            actual = Array.isArray(slot.actual)
-              ? slot.actual
-              : typeof slot.actual === "string"
-              ? JSON.parse(slot.actual)
-              : [];
-          } catch (e) {
-            console.warn(`Invalid JSON in timeslot "${timeSlotKey}"`, e);
+          if (Array.isArray(slot.actual)) {
+            actual = slot.actual;
+          } else {
+            try {
+              actual = slot.actual ? JSON.parse(slot.actual) : [];
+            } catch (e) {
+              console.error("Error parsing actual JSON:", e);
+            }
           }
         }
 
@@ -114,6 +112,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(rows);
   } catch (error) {
     console.error("Error fetching data:", error);
-    return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch data" },
+      { status: 500 }
+    );
   }
 }

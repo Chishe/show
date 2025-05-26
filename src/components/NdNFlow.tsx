@@ -104,6 +104,7 @@ const DnDFlow = () => {
   const [newLabel, setNewLabel] = React.useState<string>("");
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes] = useState<CustomNode[]>([]);
+
   const fetchData = async () => {
     try {
       const [nodesResponse, edgesResponse, valuesResponse] = await Promise.all([
@@ -112,39 +113,87 @@ const DnDFlow = () => {
         axios.get("/api/status-stock"),
       ]);
 
-      const valuesMap = valuesResponse.data.reduce((acc: Record<string, ItemType>, item: ItemType) => {
-        acc[item.label] = item;
-        return acc;
-      }, {} as Record<string, ItemType>);
+      const valuesMap = valuesResponse.data.reduce(
+        (acc: Record<string, ItemType>, item: ItemType) => {
+          acc[item.label] = item;
+          return acc;
+        },
+        {}
+      );
 
+      function transformLabel(label?: string): string | undefined {
+        if (label) {
+          const match = label.match(/^Core#(\d+)$/);
+          if (match) {
+            const num = Number(match[1]);
+            if (num >= 1 && num <= 6) {
+              return `core_${num}`;
+            }
+          }
+        }
+        return undefined;
+      }
+      
+      
+      const bgNodesResponses = await Promise.all(
+        nodesResponse.data.map((node: NodeType) => {
+          const tableName = transformLabel(node.label);
+      
+          return tableName
+            ? axios
+                .get(`/api/bg-nodes?nametableurl=${encodeURIComponent(tableName)}`)
+                .catch((err) => {
+                  console.warn(`Skipping bg-node for ${node.label}:`, err.message);
+                  return { data: null };
+                })
+            : Promise.resolve({ data: null }); 
+        })
+      );
+
+
+      const bgDataMap = nodesResponse.data.reduce((acc: Record<string, any>, node: NodeType, index: number) => {
+        if (node.label && bgNodesResponses[index]?.data) {
+          acc[node.label] = bgNodesResponses[index].data;
+        }
+        return acc;
+      }, {});
 
       setNodes(
         nodesResponse.data.map((node: NodeType) => {
           const nodeData = node.label ? valuesMap[node.label] || {} : {};
+          const bgNodeData = node.label ? bgDataMap[node.label] : null;
+          const orValue = bgNodeData?.[0]?.or || bgNodeData?.[0]?.Or || "0%";
           let backgroundColor = "#41d4a8";
           let handleRightColor = "#41d4a8";
-
+      
           if (nodeData.result !== undefined) {
-            if (nodeData.result === 0) {
-              handleRightColor = "#00FF00";
-            } else if (nodeData.result === 1) {
-              handleRightColor = "#DC143C";
-            }
+            handleRightColor = nodeData.result === 0 ? "#00FF00" : "#DC143C";
           }
-
+      
+          const nodeColor = bgNodeData?.[0]?.node_color || null;
+          if (nodeColor === "red") {
+            backgroundColor = "#DC143C";
+          } else if (nodeColor === "green") {
+            backgroundColor = "#00FF00";
+          } else if (nodeColor === "yellow") {
+            backgroundColor = "#FFD700";
+          }
+      
           return {
             id: node.id.toString(),
             type: node.type,
             data: {
               label:
-                node.label?.toLowerCase() === '=conn' ? null : (
+                node.label?.toLowerCase() === "=conn" ? null : (
                   <div>
                     <div className="bg-[#4B0082] text-white rounded-t-sm mt-[-3px] w-full">
                       {node.label}
                     </div>
-
                     <div className="nowrap-text bg-emerald-200 rounded-b-sm w-full">
-                      {node.Or || "0%"} | {node.Defect || 0}
+                    {orValue} | {node.Defect || 0}
+                    </div>
+                    <div className="text-[8px] mt-1 text-gray-600">
+                      {bgNodeData?.someField || "No extra info"}
                     </div>
                     <div className="hover-container mt-2">
                       <a
@@ -163,7 +212,6 @@ const DnDFlow = () => {
                   </div>
                 ),
             },
-
             position: { x: node.x, y: node.y },
             ...nodeDefaults,
             style: { ...nodeDefaults.style, backgroundColor },
@@ -179,12 +227,13 @@ const DnDFlow = () => {
           target: edge.target,
         }))
       );
-
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Error loading nodes or edges.");
     }
   };
+
+
 
   useEffect(() => {
     const updateHandlesColor = () => {
@@ -202,7 +251,7 @@ const DnDFlow = () => {
           (handleRight as HTMLElement).style.backgroundColor = node.handleRightColor;
         }
 
-        console.log(`Node ${node.id} handle color set to: ${node.handleRightColor}`);
+        // console.log(`Node ${node.id} handle color set to: ${node.handleRightColor}`);
       });
     };
 
@@ -444,12 +493,6 @@ const DnDFlow = () => {
               Save
             </button>
             <button
-              onClick={() => setEditingNode(null)}
-              className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
-            >
-              Cancel
-            </button>
-            <button
               onClick={() => {
                 if (editingNode) {
                   deleteNode(editingNode.id);
@@ -460,6 +503,13 @@ const DnDFlow = () => {
             >
               Delete
             </button>
+            <button
+              onClick={() => setEditingNode(null)}
+              className="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200"
+            >
+              Cancel
+            </button>
+
           </div>
 
         </div>

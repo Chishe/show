@@ -12,7 +12,7 @@ interface PlanRow {
   endtime: string;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest) { 
   const { searchParams } = new URL(request.url);
   const table = searchParams.get("nametableurl") || "core_1";
   const date = searchParams.get("date");
@@ -27,21 +27,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const query = `
-SELECT id, sequence, partnumber, model, qty, cttarget, starttime, endtime
-FROM plan_${table}
-WHERE plandate = $1
-  AND NOT (
-    (starttime < '20:30' AND endtime > '19:35') OR
-    (starttime < '21:30' AND endtime > '20:30') OR
-    (starttime < '22:30' AND endtime > '21:40') OR
-    (starttime < '01:30' AND endtime > '00:30') OR
-    (starttime < '02:30' AND endtime > '01:30') OR
-    (starttime < '03:30' AND endtime > '02:40') OR
-    (starttime < '04:30' AND endtime > '03:30') OR
-    (starttime < '05:50' AND endtime > '04:50') OR
-    (starttime < '06:50' AND endtime > '05:50')
-  )
-ORDER BY sequence;
+      SELECT id, sequence, partnumber, model, qty, cttarget, starttime, endtime
+      FROM plan_${table}
+      WHERE plandate = $1
+      ORDER BY sequence;
     `;
 
     const result = await pool.query(query, [date]);

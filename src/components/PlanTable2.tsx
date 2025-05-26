@@ -110,7 +110,7 @@ export default function PlanTable({ nametableurl, dateTime }: PlanTableProps) {
 
             axios
                 .get(
-                    `/api/planTableData?nametableurl=${encodeURIComponent(
+                    `/api/planTableData-b?nametableurl=${encodeURIComponent(
                         nametableurl
                     )}&date=${encodeURIComponent(dateTime)}`
                 )
@@ -243,14 +243,14 @@ export default function PlanTable({ nametableurl, dateTime }: PlanTableProps) {
                                 </td>
                             </tr>
                         ) : (
-                            rows.map((row) => (
+                            rows.map((row, index) => (
                                 <React.Fragment key={row.seq}>
                                     <tr className="text-white">
                                         <td
                                             className="p-2 border sticky left-0 z-10 bg-[#100C2A]"
                                             rowSpan={2}
                                         >
-                                            {row.seq}
+                                            {index + 1}
                                         </td>
                                         <td
                                             className="p-2 border sticky left-[3px] z-10 bg-[#100C2A]"
