@@ -162,7 +162,7 @@ const DnDFlow = () => {
         nodesResponse.data.map((node: NodeType) => {
           const nodeData = node.label ? valuesMap[node.label] || {} : {};
           const bgNodeData = node.label ? bgDataMap[node.label] : null;
-          const orValue = bgNodeData?.[0]?.or || bgNodeData?.[0]?.Or || "0%";
+          const orValue = (bgNodeData?.[0]?.or_percent ?? 0) + "%";
           let backgroundColor = "#41d4a8";
           let handleRightColor = "#41d4a8";
       
@@ -174,7 +174,7 @@ const DnDFlow = () => {
           if (nodeColor === "red") {
             backgroundColor = "#DC143C";
           } else if (nodeColor === "green") {
-            backgroundColor = "#00FF00";
+            backgroundColor = "#41d4a8";
           } else if (nodeColor === "yellow") {
             backgroundColor = "#FFD700";
           }
@@ -192,9 +192,9 @@ const DnDFlow = () => {
                     <div className="nowrap-text bg-emerald-200 rounded-b-sm w-full">
                     {orValue} | {node.Defect || 0}
                     </div>
-                    <div className="text-[8px] mt-1 text-gray-600">
-                      {bgNodeData?.someField || "No extra info"}
-                    </div>
+                    {/* <div className="text-[8px] mt-1 text-gray-600">
+                      {bgNodeData?.someField || ""}
+                    </div> */}
                     <div className="hover-container mt-2">
                       <a
                         href={

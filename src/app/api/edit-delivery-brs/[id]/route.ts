@@ -23,8 +23,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
             !status || 
             shipping_status === undefined || 
             current_mp_skill === undefined || 
-            safety_stock === undefined || 
-        ) {
+            safety_stock === undefined
+        ){
             return new NextResponse(
                 JSON.stringify({ message: 'Missing required fields' }),
                 { status: 400, headers: { 'Content-Type': 'application/json' } }

@@ -57,14 +57,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         },
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error updating node:', error);
+  
+    const err = error as Error;
     return new NextResponse(
       JSON.stringify({
         message: 'Error updating node',
-        error: error.message,
+        error: err.message,
       }),
       { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
+  
 }

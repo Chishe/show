@@ -2,10 +2,21 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
-export default function EnergyStatusCard({ type }) {
+interface EnergyStatusCardProps {
+    type: "hvac" | "brs";
+  }
+  interface EnergyData {
+    id: number;
+    status: string;
+    shipping_status: string;
+    current_energy: number;
+    target_energy: number;
+    dekidaka: string;
+  }
+  
+export default function EnergyStatusCard({ type }: EnergyStatusCardProps) {
     const [open, setOpen] = useState(false);
-    const [data, setData] = useState(null);
+    const [data, setData] = useState<EnergyData | null>(null);
     const [status, setStatus] = useState("Normal");
     const [shippingStatus, setShippingStatus] = useState("On Time");
 

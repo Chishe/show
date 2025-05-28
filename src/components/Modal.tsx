@@ -8,25 +8,11 @@ const columns = [
     key: "partNumber",
     label: "Part Number",
     type: "select",
-    options: ["TG447687-0171",
-      "TG447687-0160",
-      "TG447687-0070",
+    options: [
       "TG447687-0430",
       "TG447686-1830",
-      "TG447686-0601",
-      "TG447686-1770",
-      "TG447686-1820",
-      "TG447686-0591",
-      "TG447686-1760",
-      "TG447685-0033",
-      "TG447684-1140",
-      "TG447684-1130",
       "TG447682-5330",
-      "TG447682-5320",
       "TG447682-5080",
-      "TG447682-5090",
-      "TG447683-6400",
-      "TG447683-6390",
       "TG447683-6100",
       "TG447683-5940",
       "TG447681-1380",
@@ -132,7 +118,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
     }));
 
     try {
-      const res = await fetch(`/api/insert-plan?table=${nametableurl}`, {
+      const res = await fetch(`/api/insert-plan?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -249,11 +235,11 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       ];
     });
 
-  const deleteRow = async (id: number) => {
-    try {
-      const res = await fetch(`/api/plan/${id}?table=${nametableurl}`, {
-        method: "DELETE",
-      });
+    const deleteRow = async (id: number) => {
+      try {
+        const res = await fetch(`/api/plan/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
+          method: "DELETE",
+        });
 
       if (!res.ok) {
         const data = await res.json();

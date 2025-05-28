@@ -46,27 +46,108 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Invalid or missing date" }, { status: 400 });
     }
 
-    const rowsQuery = `
-      SELECT r.seq, r.partnumber, r.partdimension, r.firstpiece, r.machinestatus, r.componentstatus, 
-             r.target, r.actual, 
-             jsonb_object_agg(ts.timeSlot, jsonb_build_object('target', ts.target, 'actual', ts.actual)) AS timeslots
-      FROM rows_${nametableurl} r
-      JOIN timeSlots_${nametableurl} ts ON r.seq = ts.row_id
-      WHERE ts.date = $1
-        AND ts.timeSlot IN (
-          '19:35-20:30',
-          '20:30-21:30',
-          '21:40-22:30',
-          '00:30-01:30',
-          '01:30-02:30',
-          '02:40-03:30',
-          '03:30-04:30',
-          '04:50-05:50',
-          '05:50-06:50'
-        )
-      GROUP BY r.seq;
+        const rowsQuery = `
+                SELECT 
+                r.seq, 
+                r.partnumber, 
+                r.partdimension, 
+                r.firstpiece, 
+                r.machinestatus, 
+                r.componentstatus, 
+                r.target, 
+                r.actual, 
+                MIN(p.id) AS pid,  -- aggregate to allow sorting
+                jsonb_object_agg(
+                  ts.timeSlot,
+                  jsonb_build_object('target', ts.target, 'actual', ts.actual)
+                  ORDER BY CASE ts.timeSlot
+                  WHEN '19:35-20:30' THEN 1
+                  WHEN '20:30-21:30' THEN 1
+                  WHEN '21:40-22:30' THEN 2
+                  WHEN '00:30-01:30' THEN 3
+                  WHEN '01:30-02:30' THEN 4
+                  WHEN '02:40-03:30' THEN 5
+                  WHEN '03:30-04:30' THEN 6
+                  WHEN '04:50-05:50' THEN 7
+                  WHEN '05:50-06:50' THEN 8
+                   ELSE 99
+                 END
+                ) AS timeslots
+                FROM rows_${nametableurl} r
+                JOIN plan_${nametableurl} p ON r.partnumber = p.partnumber
+                JOIN timeSlots_${nametableurl} ts ON r.seq = ts.row_id
+                WHERE ts.date = $1
+                AND ts.timeSlot IN (
+                '19:35-20:30',
+                '20:30-21:30',
+                '21:40-22:30',
+                '00:30-01:30',
+                '01:30-02:30',
+                '02:40-03:30',
+                '03:30-04:30',
+                '04:50-05:50',
+                '05:50-06:50'
+                )
+                GROUP BY r.seq
+                ORDER BY pid ASC;
     `;
-
+//     const rowsQuery = `
+//               SELECT 
+//                   ROW_NUMBER() OVER (ORDER BY pid) AS seq,
+//                   sub.partnumber,
+//                   sub.partdimension,
+//                   sub.firstpiece,
+//                   sub.machinestatus,
+//                   sub.componentstatus,
+//                   sub.target,
+//                   sub.actual,
+//                   sub.pid,
+//                   sub.timeslots
+//               FROM (
+//                   SELECT 
+//                       r.partnumber, 
+//                       r.partdimension, 
+//                       r.firstpiece, 
+//                       r.machinestatus, 
+//                       r.componentstatus, 
+//                       r.target, 
+//                       r.actual, 
+//                       MIN(p.id) AS pid,
+//                       jsonb_object_agg(
+//                           ts.timeSlot,
+//                           jsonb_build_object('target', ts.target, 'actual', ts.actual)
+//                           ORDER BY CASE ts.timeSlot
+//                             WHEN '19:35-20:30' THEN 1
+//                             WHEN '20:30-21:30' THEN 1
+//                             WHEN '21:40-22:30' THEN 2
+//                             WHEN '00:30-01:30' THEN 3
+//                             WHEN '01:30-02:30' THEN 4
+//                             WHEN '02:40-03:30' THEN 5
+//                             WHEN '03:30-04:30' THEN 6
+//                             WHEN '04:50-05:50' THEN 7
+//                             WHEN '05:50-06:50' THEN 8
+//                               ELSE 99
+//                           END
+//                       ) AS timeslots
+//                   FROM rows_${nametableurl} r
+//                   JOIN plan_${nametableurl} p ON r.partnumber = p.partnumber
+//                   JOIN timeSlots_${nametableurl} ts ON r.seq = ts.row_id
+//                   WHERE ts.date = $1
+//                   AND ts.timeSlot IN (
+//                           '19:35-20:30',
+//                           '20:30-21:30',
+//                           '21:40-22:30',
+//                           '00:30-01:30',
+//                           '01:30-02:30',
+//                           '02:40-03:30',
+//                           '03:30-04:30',
+//                           '04:50-05:50',
+//                           '05:50-06:50'
+//                   )
+//                   GROUP BY r.seq, r.partnumber, r.partdimension, r.firstpiece, r.machinestatus, r.componentstatus, r.target, r.actual
+//               ) AS sub
+//               ORDER BY seq ASC;
+// `;
     const rowsResult = await pool.query(rowsQuery, [date]);
 
     const rows: Row[] = rowsResult.rows.map((row) => {

@@ -1,5 +1,15 @@
 import pool from '@/lib/db';
 
+type StockRow = {
+  part_no: string;
+  total_quantity: number;
+};
+
+type JudgementRow = {
+  part_no: string;
+  qty: number;
+};
+
 export async function GET() {
   try {
     const stockResult1 = await pool.query(`
@@ -26,8 +36,8 @@ export async function GET() {
       FROM judgement_line2
     `);
 
-    const checkResult = (stockRows, judgementRows) => {
-      const stockMap = {};
+    const checkResult = (stockRows: StockRow[], judgementRows: JudgementRow[]): number => {
+      const stockMap: Record<string, number> = {};
       stockRows.forEach(row => {
         stockMap[row.part_no] = row.total_quantity;
       });

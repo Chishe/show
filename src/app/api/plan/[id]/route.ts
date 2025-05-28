@@ -15,14 +15,17 @@ export async function DELETE(
   if (!table) {
     return NextResponse.json({ error: 'Table name is required' }, { status: 400 });
   }
-
+  const date = req.nextUrl.searchParams.get("date");
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return NextResponse.json({ error: "Invalid or missing date" }, { status: 400 });
+  }
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
 
     const planRes = await client.query(
-      `SELECT partnumber FROM plan_${table} WHERE id = $1`,
-      [planId]
+      `SELECT partnumber FROM plan_${table} WHERE id = $1 and plandate = $2`,
+      [planId,date]
     );
 
     if (planRes.rowCount === 0) {
@@ -32,22 +35,22 @@ export async function DELETE(
     const partnumber = planRes.rows[0].partnumber;
 
     const rowRes = await client.query(
-      `SELECT seq FROM rows_${table} WHERE partnumber = $1`,
-      [partnumber]
+      `SELECT seq FROM rows_${table} WHERE partnumber = $1 and date = $2`,
+      [partnumber, date]
     );
 
     const rowId = rowRes?.rows?.[0]?.seq;
 
     if (rowId !== undefined) {
       await client.query(
-        `DELETE FROM timeSlots_${table} WHERE row_id = $1`,
-        [rowId]
+        `DELETE FROM timeSlots_${table} WHERE row_id = $1 and date = $2`,
+        [rowId, date]
       );
 
-      await client.query(`DELETE FROM rows_${table} WHERE seq = $1`, [rowId]);
+      await client.query(`DELETE FROM rows_${table} WHERE seq = $1 and date = $2`, [rowId, date]);
     }
 
-    await client.query(`DELETE FROM plan_${table} WHERE id = $1`, [planId]);
+    await client.query(`DELETE FROM plan_${table} WHERE id = $1 and plandate = $2`, [planId, date]);
 
     await client.query("COMMIT");
     return NextResponse.json({ message: "Deleted successfully" });

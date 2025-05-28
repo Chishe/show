@@ -8,11 +8,9 @@ export async function PUT(req: NextRequest) {
 
     const table = req.nextUrl.searchParams.get("table");
 
-
-
     const fieldMap: Record<string, string> = {
       situation: "situation",
-      problemType: "problemtype",
+      problemtype: "problemtype",
       factor: "factor",
       partNo: "partno",
       details: "details",

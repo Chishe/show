@@ -11,13 +11,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const nametableurl = searchParams.get("nametableurl") || "core_1";
     const dateParam = searchParams.get("date");
-    console.log(dateParam)
-    if (!/^[a-zA-Z0-9_]+$/.test(nametableurl)) {
-      return NextResponse.json({ error: "Invalid table name" }, { status: 400 });
-    }
-
     if (!dateParam || !/^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
       return NextResponse.json({ error: "Invalid or missing date" }, { status: 400 });
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(nametableurl)) {
+      return NextResponse.json({ error: "Invalid table name" }, { status: 400 });
     }
 
     const formattedDate = convertDateToDDMMYYYY(dateParam);
@@ -29,7 +28,7 @@ export async function GET(request: NextRequest) {
       ORDER BY itemno ASC
     `;
 
-    const result = await pool.query(sql, [`${formattedDate}%`]);
+    const result = await pool.query(sql, [`${dateParam}%`]);
 
     return NextResponse.json(result.rows);
   } catch (error) {

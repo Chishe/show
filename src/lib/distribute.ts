@@ -12,7 +12,7 @@ export const TIME_SLOTS: string[] = [
   ];
   
   function toMinutes(timeStr: string): number {
-    console.log("toMinutes input:", timeStr);
+    // console.log("toMinutes input:", timeStr);
     if (!timeStr || !timeStr.includes(":")) {
       throw new Error(`Invalid time string: ${timeStr}`);
     }

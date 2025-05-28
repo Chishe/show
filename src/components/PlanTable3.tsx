@@ -56,12 +56,17 @@ type Row = Omit<
 
 const getCellBgColor = (targetVal: number | null, actualVal: number | null) => {
     if (actualVal === null) return "";
-    if (targetVal === null || targetVal === 0) return "";
-
-    if (actualVal >= targetVal) return "#41D4A8";
-    if (actualVal < targetVal) return "#FCC21B";
-    return "#F44336";
-};
+  
+    if (targetVal === null || targetVal === 0) return "#41D4A8";
+  
+    if (actualVal === 0) return "#F44336";          // แดง
+    if (actualVal >= targetVal) return "#41D4A8";   // เขียว
+    if (actualVal < targetVal) return "#FCC21B";    // เหลือง
+  
+    return "";
+  };
+  
+  
 
 const renderStatusDot = (status: string) => {
     let color = "#9ca3af";

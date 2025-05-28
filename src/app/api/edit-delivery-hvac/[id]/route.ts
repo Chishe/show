@@ -18,12 +18,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
             current_mp_skill, 
             safety_stock, 
         } = await req.json();
-
         if (
             !status || 
             shipping_status === undefined || 
             current_mp_skill === undefined || 
-            safety_stock === undefined || 
+            safety_stock === undefined
         ) {
             return new NextResponse(
                 JSON.stringify({ message: 'Missing required fields' }),

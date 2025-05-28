@@ -9,7 +9,7 @@ import { GiCardboardBox } from "react-icons/gi";
 interface LossMemoItem {
   itemno: number;
   situation: string;
-  problemType: string;
+  problemtype: string;
   factor: string;
   partNo: string;
   details: string;
@@ -100,7 +100,7 @@ export default function LossMemo({ nametableurl, dateTime }: LossMemoProps) {
         if (value === "Abnormal") return "bg-red-500 text-white";
         if (value === "KAIZEN") return "bg-green-500 text-white";
         break;
-      case "problemType":
+      case "problemtype":
         if (value === "Quality") return "bg-red-500 text-white";
         if (value === "Cost") return "bg-green-500 text-white";
         break;

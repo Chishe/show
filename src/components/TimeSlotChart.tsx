@@ -11,6 +11,7 @@ import {
   ChartOptions,
   TooltipItem,
 } from "chart.js";
+import ChartDataLabels from "chartjs-plugin-datalabels";
 import { GiCardboardBox } from "react-icons/gi";
 import { Line } from "react-chartjs-2";
 import type { Chart as ChartType } from "chart.js";
@@ -23,7 +24,8 @@ ChartJS.register(
   LineElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  ChartDataLabels
 );
 
 interface ChartData {
@@ -35,14 +37,15 @@ interface ChartData {
 
 interface ChartState {
   labels: string[];
-  datasets: {
+  datasets: Array<{
     label: string;
     data: (number | null)[];
     borderColor: string;
     fill: boolean;
     borderDash?: [number, number];
     pointRadius?: number;
-  }[];
+    [key: string]: any;
+  }>;
 }
 interface TimeSlotChartProps {
   nametableurl: string;
@@ -63,7 +66,7 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
 
   useEffect(() => {
     const fetchChartData = () => {
-      console.log("Fetching chartdata with:", nametableurl, dateTime); // log ค่า
+      console.log("Fetching chartdata with:", nametableurl, dateTime);
       fetch(
         `/api/chartdata?nametableurl=${encodeURIComponent(
           nametableurl
@@ -123,6 +126,16 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
                 borderColor: "#4deeea",
                 fill: false,
                 pointRadius: 6,
+                datalabels: {
+                  display: true,
+                  color: 'white',
+                  anchor: 'end',
+                  align: 'top',
+                  font: {
+                    weight: 'bold'
+                  },
+                  formatter: (value: number | null) => (value != null && !isNaN(value) ? value : ''),
+                },
               },
             ],
           });
@@ -181,6 +194,9 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
       },
     },
     plugins: {
+      datalabels: {
+        display: false,
+      },
       legend: {
         position: "top",
         labels: {
@@ -270,7 +286,7 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
         .getHours()
         .toString()
         .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-
+        
     const newRecord = {
       situation: selectedLoss,
       problemType: selectedLoss === "Big Loss" ? selectedStatus : "",
@@ -279,7 +295,7 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
       details: detail,
       action: "",
       pic: "",
-      due: formattedDue,
+      due:dateTime,
       status: "Pending",
       effectiveLot: `Lot-${timeSlotRefs[selectedPoint]}`,
     };

@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     const query = `
 SELECT id, sequence, partnumber, model, qty, cttarget, starttime, endtime
 FROM plan_${table}
-WHERE plandate = $1
+WHERE plandate = $1 and jude = 'night'
   AND NOT (
     (starttime < '08:30' AND endtime > '07:35') OR
     (starttime < '09:30' AND endtime > '08:30') OR

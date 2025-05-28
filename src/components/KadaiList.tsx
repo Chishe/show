@@ -12,12 +12,30 @@ import "react-toastify/dist/ReactToastify.css";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { FaFileUpload, FaEdit } from "react-icons/fa";
 import { MdDeleteForever } from "react-icons/md";
+interface TableComponentProps {
+  title: string;
+  station: number | string;
+  apiUrl: string;
+}
+interface KadaiItem {
+  id: number;
+  station: string;
+  due: string;
+  item: string;
+}
 
-const TableComponent = ({ title, station, apiUrl }) => {
-  const [data, setData] = useState([]);
+interface DataItem {
+  id?: number;
+  station: string;
+  due: string;
+  [key: string]: any;
+}
+const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
+  const [data, setData] = useState<KadaiItem[]>([]);
   const [item, setItem] = useState("");
   const [due, setDue] = useState("");
-  const [editIndex, setEditIndex] = useState(null);
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+
   const [isLoading, setIsLoading] = useState(false);
 
   const resetForm = () => {
@@ -80,7 +98,7 @@ const TableComponent = ({ title, station, apiUrl }) => {
   };
   
 
-  const handleDeleteKadai = async (id) => {
+  const handleDeleteKadai = async (id: number) => {
     try {
       const response = await axios.delete(
         `/api/kadai-del/${id}`,
@@ -90,7 +108,7 @@ const TableComponent = ({ title, station, apiUrl }) => {
           },
         }
       );
-
+  
       if (response.status === 200) {
         toast.success("Kadai deleted successfully!", { autoClose: 2000 });
         setData((prevData) => prevData.filter((item) => item.id !== id));
@@ -99,37 +117,46 @@ const TableComponent = ({ title, station, apiUrl }) => {
           autoClose: 2000,
         });
       }
-    } catch (error) {
-      console.error("Error deleting kadai:", error.response || error.message);
-      toast.error(
-        `Error deleting kadai: ${
-          error.response ? error.response.data.message : error.message
-        }`,
-        { autoClose: 4000 }
-      );
+    }catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        console.error("Error deleting kadai:", error.response || error.message);
+        toast.error(
+          `Error deleting kadai: ${error.response?.data?.message ?? error.message}`,
+          { autoClose: 4000 }
+        );
+      } else if (error instanceof Error) {
+        console.error("Error deleting kadai:", error.message);
+        toast.error(`Error deleting kadai: ${error.message}`, { autoClose: 4000 });
+      } else {
+        console.error("Unexpected error deleting kadai:", error);
+        toast.error("Unexpected error deleting kadai", { autoClose: 4000 });
+      }
     }
+    
   };
+  
 
-  const formatDate = (utcDate) => {
+  const formatDate = (utcDate: string | Date): string => {
     const due = new Date(utcDate);
     return due.toISOString().slice(0, 16).replace("T", " ");
   };
+  
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
         const response = await fetch(apiUrl);
-        const result = await response.json();
-        console.log(result);
+        const result: DataItem[] = await response.json();
+  
         const filteredData = result
-          .filter((item) => item.station === station.toString())
-          .map((item) => ({
+          .filter((item: DataItem) => item.station === station.toString())
+          .map((item: DataItem) => ({
             ...item,
             due: formatDate(item.due),
           }));
   
-        const formattedData = filteredData.map((item) => ({
+        const formattedData = filteredData.map((item: DataItem) => ({
           ...item,
           id: item.id || Math.random(),
         }));
@@ -141,10 +168,11 @@ const TableComponent = ({ title, station, apiUrl }) => {
         setIsLoading(false);
       }
     };
+  
     const interval = setInterval(fetchData, 1000);
-
     return () => clearInterval(interval);
   }, [station, apiUrl]);
+  
   
   const visibleData = Array.from(
     { length: 4 },

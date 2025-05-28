@@ -60,10 +60,12 @@ export async function PUT(req: NextRequest, context: { params: { id: string } })
         },
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error updating node:', error);
+  
+    const err = error as Error;
     return new NextResponse(
-      JSON.stringify({ message: 'Error updating node', error: error.message }),
+      JSON.stringify({ message: 'Error updating node', error: err.message }),
       { status: 500 }
     );
   }

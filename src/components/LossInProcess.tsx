@@ -3,31 +3,43 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+interface TableComponentProps {
+  title: string;
+  station: number | string;
+  apiUrl: string;
+}
+interface DataItem {
+  date: string;
+  station: string;
+  Loss?: string | number;
+}
 
-const TableComponent = ({ title, station, apiUrl }) => {
-  const [data, setData] = useState([]);
+const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
+  const [data, setData] = useState<DataItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const formatDate = (utcDate) => {
+  const formatDate = (utcDate: string | Date): string => {
     const date = new Date(utcDate);
     return date.toISOString().slice(0, 16).replace("T", " ");
   };
+  
 
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-
+  
       try {
         const response = await fetch(apiUrl);
-        const result = await response.json();
+        const result: DataItem[] = await response.json();
+  
         const filteredData = result.filter(
-          (item) => item.station === station.toString()
+          (item: DataItem) => item.station === station.toString()
         );
-        const formattedData = filteredData.map((item) => ({
+        const formattedData = filteredData.map((item: DataItem) => ({
           ...item,
           date: formatDate(item.date),
         }));
-
+  
         setData(formattedData);
         toast.success(`Station ${station} data loaded successfully`, {
           autoClose: 2000,
@@ -39,7 +51,7 @@ const TableComponent = ({ title, station, apiUrl }) => {
         setIsLoading(false);
       }
     };
-
+  
     fetchData();
   }, [station, apiUrl]);
 
@@ -106,7 +118,7 @@ const TableComponent = ({ title, station, apiUrl }) => {
   );
 };
 
-const getLegendColor = (label) => {
+const getLegendColor = (label: string): string => {
   switch (label) {
     case "CTIndividualProcess":
       return "bg-yellow-500";
@@ -118,6 +130,7 @@ const getLegendColor = (label) => {
       return "bg-gray-400";
   }
 };
+
 
 export default function LossInProcess({
   apiUrl = "/api/loss",

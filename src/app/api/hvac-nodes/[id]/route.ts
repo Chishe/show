@@ -48,10 +48,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         },
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error updating node:', error);
+
+    const err = error as Error;
     return new NextResponse(
-      JSON.stringify({ message: 'Error updating node', error: error.message }),
+      JSON.stringify({ message: 'Error updating node', error: err.message }),
       { status: 500 }
     );
   }
@@ -90,10 +92,12 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
         },
       }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error deleting node:', error);
+
+    const err = error as Error;
     return new NextResponse(
-      JSON.stringify({ message: 'Error deleting node', error: error.message }),
+      JSON.stringify({ message: 'Error deleting node', error: err.message }),
       { status: 500 }
     );
   }
