@@ -3,10 +3,11 @@ import pool from "@/lib/db";
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Record<string, string> | Promise<Record<string, string>> }
 ) {
-  const planId = parseInt(params.id);
-
+  const params = await context.params;
+  const planIdStr = params.planId;
+  const planId = parseInt(planIdStr, 10);
   if (isNaN(planId)) {
     return NextResponse.json({ message: "Invalid ID" }, { status: 400 });
   }

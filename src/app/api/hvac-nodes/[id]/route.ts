@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function PUT(req: NextRequest,  context: { params: Promise<Record<string, string>> }
+) {
+  const { id } = await context.params;
 
   if (!id) {
     return new NextResponse(JSON.stringify({ message: 'Missing node ID' }), {
@@ -59,8 +60,9 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params;
+export async function DELETE(req: NextRequest,  context: { params: Promise<Record<string, string>> }
+) {
+  const { id } = await context.params;
 
   if (!id) {
     return new NextResponse(JSON.stringify({ message: 'Missing node ID' }), {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
@@ -6,6 +6,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { GiCardboardBox } from "react-icons/gi";
+
 interface LossMemoItem {
   itemno: number;
   situation: string;
@@ -24,26 +25,23 @@ interface LossMemoProps {
   nametableurl: string;
   dateTime: string;
 }
+
 export default function LossMemo({ nametableurl, dateTime }: LossMemoProps) {
   const [data, setData] = useState<LossMemoItem[]>([]);
-  const [editing, setEditing] = useState<{
-    itemno: number;
-    field: string;
-  } | null>(null);
+  const [editing, setEditing] = useState<{ itemno: number; field: string } | null>(null);
   const [editValue, setEditValue] = useState<string>("");
 
-  const fetchData = async () => {
+  // useCallback เพื่อให้ fetchData อ้างอิงเดิม ไม่เกิด warning
+  const fetchData = useCallback(async () => {
     try {
       const response = await axios.get(
         `/api/getRecords?nametableurl=${encodeURIComponent(nametableurl)}&date=${encodeURIComponent(dateTime)}`
       );
-  
       setData(response.data);
-    } catch (error) {
+    } catch {
       toast.error("Failed to fetch records");
     }
-  };
-  
+  }, [nametableurl, dateTime]);
 
   const exportToExcel = () => {
     const worksheet = XLSX.utils.json_to_sheet(data);
@@ -59,11 +57,8 @@ export default function LossMemo({ nametableurl, dateTime }: LossMemoProps) {
     });
     saveAs(dataBlob, `LossMemo_${new Date().toISOString()}.xlsx`);
   };
-  const handleEdit = (
-    itemno: number,
-    field: keyof LossMemoItem,
-    value: string
-  ) => {
+
+  const handleEdit = (itemno: number, field: keyof LossMemoItem, value: string) => {
     setEditing({ itemno, field });
     setEditValue(value);
   };
@@ -91,8 +86,7 @@ export default function LossMemo({ nametableurl, dateTime }: LossMemoProps) {
     fetchData();
     const interval = setInterval(fetchData, 1000);
     return () => clearInterval(interval);
-  }, [nametableurl, dateTime]);
-  
+  }, [fetchData]);
 
   const getColorClass = (field: string, value: string) => {
     switch (field) {
@@ -145,10 +139,7 @@ export default function LossMemo({ nametableurl, dateTime }: LossMemoProps) {
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td
-                  colSpan={11}
-                  className="text-center text-gray-500 py-4 border"
-                >
+                <td colSpan={11} className="text-center text-gray-500 py-4 border">
                   <div className="relative z-10 flex flex-col items-center justify-center gap-2">
                     <GiCardboardBox size={32} />
                     <span>No data</span>
@@ -159,25 +150,15 @@ export default function LossMemo({ nametableurl, dateTime }: LossMemoProps) {
               data.map((item) => (
                 <tr key={item.itemno} className="text-center text-white">
                   {Object.entries(item).map(([field, value]) => {
-                    const isEditing =
-                      editing?.itemno === item.itemno &&
-                      editing.field === field;
+                    const isEditing = editing?.itemno === item.itemno && editing.field === field;
                     const isEditable = field !== "itemno";
 
                     return (
                       <td
                         key={field}
-                        className={`border ${getColorClass(
-                          field,
-                          String(value)
-                        )}`}
+                        className={`border ${getColorClass(field, String(value))}`}
                         onClick={() =>
-                          isEditable &&
-                          handleEdit(
-                            item.itemno,
-                            field as keyof LossMemoItem,
-                            String(value)
-                          )
+                          isEditable && handleEdit(item.itemno, field as keyof LossMemoItem, String(value))
                         }
                       >
                         {isEditing ? (

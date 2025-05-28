@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect,useCallback } from "react";
 
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { FaPlus } from "react-icons/fa";
@@ -39,7 +39,7 @@ type Row = {
   stockPart: string;
   sequence: number;
 };
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const calculateEndTime = (
   startTime: string,
   qty: string,
@@ -95,18 +95,41 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
     },
   ]);
 
-  const loadPlanData = async () => {
-    const res = await fetch(`/api/plan-b?nametableurl=${encodeURIComponent(
-      nametableurl
-    )}&date=${encodeURIComponent(dateTime)}`
-    )
+  const loadPlanData = useCallback(async () => {
+    const res = await fetch(
+      `/api/plan-b?nametableurl=${encodeURIComponent(
+        nametableurl
+      )}&date=${encodeURIComponent(dateTime)}`
+    );
     if (!res.ok) throw new Error("Failed to fetch");
     const data = await res.json();
     return data;
-  };
+  }, [nametableurl, dateTime]);
+  
+  useEffect(() => {
+    if (isOpen) {
+      loadPlanData().then(setRows).catch(console.error);
+    }
+  }, [isOpen, loadPlanData]);
 
 
   const handleSubmit = async () => {
+    const hasInvalidRow = rows.some((row) => {
+      return (
+        !row.partNumber?.trim() ||
+        !row.model?.trim() ||
+        !row.qty ||
+        !row.ctTarget ||
+        !row.startTime ||
+        !row.endTime
+      );
+    });
+  
+    if (hasInvalidRow) {
+      alert("กรุณากรอกข้อมูลให้ครบทุกแถวก่อน Submit");
+      return;
+    }
+  
     const payload = rows.map((row, index) => ({
       partnumber: row.partNumber,
       model: row.model,
@@ -116,23 +139,18 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       endtime: row.endTime,
       sequence: index + 1,
     }));
-
+  
     try {
-      console.log(JSON.stringify(payload));
-      const res = await fetch(`/api/insert-plan-1?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-
-      });
-      if (!res.ok) {
-
-        const errorText = await res.text();
-        console.error("Submit failed:", res.status, errorText);
-        throw new Error("Submit failed");
-      }
-      
-
+      const res = await fetch(
+        `/api/insert-plan-1?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+      if (!res.ok) throw new Error("Submit failed");
+  
       const updated = await loadPlanData();
       setRows(updated);
       setIsOpen(false);
@@ -144,12 +162,6 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       }
     }
   };
-
-  useEffect(() => {
-    if (isOpen) {
-      loadPlanData().then(setRows).catch(console.error);
-    }
-  }, [isOpen]);
 
   const timeSlots = [
     ["19:35", "20:30"],
@@ -164,29 +176,83 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
   ];
   
   const updateRow = (id: number, key: keyof Row, value: string) =>
-    setRows((rows) =>
-      rows.map((r) => {
-        if (r.id !== id) return r;
+    setRows((rows) => {
+      const updatedRows = [...rows];
+      const index = updatedRows.findIndex((r) => r.id === id);
   
-        const updated = { ...r, [key]: value };
+      if (index === -1) return rows;
   
-        if (
-          ["startTime", "qty", "ctTarget"].includes(key) &&
-          updated.startTime &&
-          updated.qty &&
-          updated.ctTarget
-        ) {
-          const [startH, startM] = updated.startTime.split(":").map(Number);
+      const updated = { ...updatedRows[index], [key]: value };
+  
+      if (
+        updated.startTime &&
+        updated.qty &&
+        updated.ctTarget
+      ) {
+        const [startH, startM] = updated.startTime.split(":").map(Number);
+        const startDate = new Date();
+        startDate.setHours(startH, startM, 0, 0);
+  
+        const ct = parseInt(updated.ctTarget);
+        const qty = parseInt(updated.qty);
+
+        const durationSeconds = qty * ct;
+        const endDate = new Date(startDate.getTime() + durationSeconds * 1000);
+  
+        const matchedSlot = timeSlots.find(([slotStart, slotEnd]) => {
+          const [slotStartH, slotStartM] = slotStart.split(":").map(Number);
+          const [slotEndH, slotEndM] = slotEnd.split(":").map(Number);
+  
+          const slotStartDate = new Date(startDate);
+          const slotEndDate = new Date(startDate);
+  
+          if (slotStartH < 12 && startH >= 12) {
+            slotStartDate.setDate(slotStartDate.getDate() + 1);
+            slotEndDate.setDate(slotEndDate.getDate() + 1);
+          }
+  
+          slotStartDate.setHours(slotStartH, slotStartM, 0, 0);
+          slotEndDate.setHours(slotEndH, slotEndM, 0, 0);
+  
+          return startDate >= slotStartDate && startDate < slotEndDate;
+        });
+  
+        if (matchedSlot) {
+          const [, slotEnd] = matchedSlot;
+          const [limitH, limitM] = slotEnd.split(":").map(Number);
+          const limitDate = new Date(startDate);
+          if (limitH < 12 && startH >= 12) {
+            limitDate.setDate(limitDate.getDate() + 1);
+          }
+          limitDate.setHours(limitH, limitM, 0, 0);
+  
+          if (endDate > limitDate) {
+            updated.endTime = slotEnd;
+          } else {
+            updated.endTime = `${endDate.getHours().toString().padStart(2, "0")}:${endDate.getMinutes().toString().padStart(2, "0")}`;
+          }
+        } else {
+          updated.endTime = `${endDate.getHours().toString().padStart(2, "0")}:${endDate.getMinutes().toString().padStart(2, "0")}`;
+        }
+      } else {
+        updated.endTime = "";
+      }
+  
+      updatedRows[index] = updated;
+  
+      if (index + 1 < updatedRows.length) {
+        const nextRow = { ...updatedRows[index + 1] };
+        nextRow.startTime = updated.endTime;
+  
+        if (nextRow.startTime && nextRow.qty && nextRow.ctTarget) {
+          const [startH, startM] = nextRow.startTime.split(":").map(Number);
           const startDate = new Date();
           startDate.setHours(startH, startM, 0, 0);
   
-          const ct = parseInt(updated.ctTarget);
-          const qty = parseInt(updated.qty);
+          const ct = parseInt(nextRow.ctTarget);
+          const qty = parseInt(nextRow.qty);
+          const endDate = new Date(startDate.getTime() + qty * ct * 1000);
   
-          const durationSeconds = qty * ct;
-          let endDate = new Date(startDate.getTime() + durationSeconds * 1000);
-  
-          // หาช่วงเวลา slot
           const matchedSlot = timeSlots.find(([slotStart, slotEnd]) => {
             const [slotStartH, slotStartM] = slotStart.split(":").map(Number);
             const [slotEndH, slotEndM] = slotEnd.split(":").map(Number);
@@ -194,7 +260,6 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
             const slotStartDate = new Date(startDate);
             const slotEndDate = new Date(startDate);
   
-            // กรณีข้ามวัน
             if (slotStartH < 12 && startH >= 12) {
               slotStartDate.setDate(slotStartDate.getDate() + 1);
               slotEndDate.setDate(slotEndDate.getDate() + 1);
@@ -207,33 +272,32 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
           });
   
           if (matchedSlot) {
-            const [_, slotEnd] = matchedSlot;
+            const [, slotEnd] = matchedSlot;
             const [limitH, limitM] = slotEnd.split(":").map(Number);
             const limitDate = new Date(startDate);
             if (limitH < 12 && startH >= 12) {
-              limitDate.setDate(limitDate.getDate() + 1); // ข้ามวัน
+              limitDate.setDate(limitDate.getDate() + 1);
             }
             limitDate.setHours(limitH, limitM, 0, 0);
   
             if (endDate > limitDate) {
-              // ปัด endTime ให้เป็นเวลาสิ้นสุดของ slot
-              updated.endTime = slotEnd;
+              nextRow.endTime = slotEnd;
             } else {
-              const endH = endDate.getHours().toString().padStart(2, "0");
-              const endM = endDate.getMinutes().toString().padStart(2, "0");
-              updated.endTime = `${endH}:${endM}`;
+              nextRow.endTime = `${endDate.getHours().toString().padStart(2, "0")}:${endDate.getMinutes().toString().padStart(2, "0")}`;
             }
           } else {
-            // ไม่อยู่ในช่วง slot ใดเลย → ไม่ปัด
-            const endH = endDate.getHours().toString().padStart(2, "0");
-            const endM = endDate.getMinutes().toString().padStart(2, "0");
-            updated.endTime = `${endH}:${endM}`;
+            nextRow.endTime = `${endDate.getHours().toString().padStart(2, "0")}:${endDate.getMinutes().toString().padStart(2, "0")}`;
           }
+        } else {
+          nextRow.endTime = "";
         }
   
-        return updated;
-      })
-    );
+        updatedRows[index + 1] = nextRow;
+      }
+  
+      return updatedRows;
+    });
+  
   
 
   const addRow = () =>

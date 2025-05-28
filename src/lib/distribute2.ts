@@ -82,7 +82,8 @@ function distributeQtyByQtyAndCT(
     const slotData: (number | null)[] = [];
 
     for (const sub of subSlots) {
-      let [s, e] = sub.split("-").map(toMinutes);
+      const [s, eOriginal] = sub.split("-").map(toMinutes);
+      let e = eOriginal;
       if (e <= s) e += 1440;
 
       const overlap = getOverlapMinutes(s, e, rangeStart, rangeEnd);

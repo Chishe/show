@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { FaPlus } from "react-icons/fa";
@@ -95,18 +95,42 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
     },
   ]);
 
-  const loadPlanData = async () => {
-    const res = await fetch(`/api/plan?nametableurl=${encodeURIComponent(
-      nametableurl
-    )}&date=${encodeURIComponent(dateTime)}`
-    )
+  const loadPlanData = useCallback(async () => {
+    const res = await fetch(
+      `/api/plan?nametableurl=${encodeURIComponent(
+        nametableurl
+      )}&date=${encodeURIComponent(dateTime)}`
+    );
     if (!res.ok) throw new Error("Failed to fetch");
     const data = await res.json();
     return data;
-  };
+  }, [nametableurl, dateTime]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadPlanData().then(setRows).catch(console.error);
+    }
+  }, [isOpen, loadPlanData]);
+  
 
 
   const handleSubmit = async () => {
+    const hasInvalidRow = rows.some((row) => {
+      return (
+        !row.partNumber?.trim() ||
+        !row.model?.trim() ||
+        !row.qty ||
+        !row.ctTarget ||
+        !row.startTime ||
+        !row.endTime
+      );
+    });
+
+    if (hasInvalidRow) {
+      alert("กรุณากรอกข้อมูลให้ครบทุกแถวก่อน Submit");
+      return;
+    }
+
     const payload = rows.map((row, index) => ({
       partnumber: row.partNumber,
       model: row.model,
@@ -118,11 +142,14 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
     }));
 
     try {
-      const res = await fetch(`/api/insert-plan?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        `/api/insert-plan?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
       if (!res.ok) throw new Error("Submit failed");
 
       const updated = await loadPlanData();
@@ -137,54 +164,71 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
     }
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      loadPlanData().then(setRows).catch(console.error);
-    }
-  }, [isOpen]);
-
   const updateRow = (id: number, key: keyof Row, value: string) =>
-    setRows((rows) =>
-      rows.map((r) => {
-        if (r.id !== id) return r;
+    setRows((rows) => {
+      const updatedRows = [...rows];
+      const index = updatedRows.findIndex((r) => r.id === id);
 
-        const updated = { ...r, [key]: value };
+      if (index === -1) return rows;
 
-        if (
-          ["startTime", "qty", "ctTarget"].includes(key) &&
-          updated.startTime &&
-          updated.qty &&
-          updated.ctTarget
-        ) {
-          const calculatedEnd = calculateEndTime(
-            updated.startTime,
-            updated.qty,
-            updated.ctTarget
-          );
-          if (calculatedEnd === "18:50") {
-            const [startH, startM] = updated.startTime.split(":").map(Number);
-            const startDate = new Date();
-            startDate.setHours(startH, startM, 0, 0);
+      const row = { ...updatedRows[index], [key]: value };
 
-            const limitDate = new Date();
-            limitDate.setHours(18, 50, 0, 0);
+      if (
+        ["startTime", "qty", "ctTarget"].includes(key) &&
+        row.startTime &&
+        row.qty &&
+        row.ctTarget
+      ) {
+        const calculatedEnd = calculateEndTime(
+          row.startTime,
+          row.qty,
+          row.ctTarget
+        );
 
-            const availableSeconds =
-              (limitDate.getTime() - startDate.getTime()) / 1000;
+        if (calculatedEnd === "18:50") {
+          const [startH, startM] = row.startTime.split(":").map(Number);
+          const startDate = new Date();
+          startDate.setHours(startH, startM, 0, 0);
 
-            const ct = parseInt(updated.ctTarget);
-            const maxQty = Math.floor(availableSeconds / ct);
+          const limitDate = new Date();
+          limitDate.setHours(18, 50, 0, 0);
 
-            updated.qty = maxQty.toString();
-            updated.endTime = "18:50";
-          } else {
-            updated.endTime = calculatedEnd;
-          }
+          const availableSeconds =
+            (limitDate.getTime() - startDate.getTime()) / 1000;
+
+          const ct = parseInt(row.ctTarget);
+          const maxQty = Math.floor(availableSeconds / ct);
+
+          row.qty = maxQty.toString();
+          row.endTime = "18:50";
+        } else {
+          row.endTime = calculatedEnd;
         }
+        if (index + 1 < updatedRows.length) {
+          const nextRow = { ...updatedRows[index + 1] };
+          nextRow.startTime = row.endTime;
 
-        return updated;
-      })
-    );
+          if (
+            nextRow.qty &&
+            nextRow.ctTarget &&
+            nextRow.startTime
+          ) {
+            nextRow.endTime = calculateEndTime(
+              nextRow.startTime,
+              nextRow.qty,
+              nextRow.ctTarget
+            );
+          } else {
+            nextRow.endTime = "";
+          }
+
+          updatedRows[index + 1] = nextRow;
+        }
+      }
+
+      updatedRows[index] = row;
+      return updatedRows;
+    });
 
   const addRow = () =>
     setRows((rows) => {
@@ -235,11 +279,11 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       ];
     });
 
-    const deleteRow = async (id: number) => {
-      try {
-        const res = await fetch(`/api/plan/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
-          method: "DELETE",
-        });
+  const deleteRow = async (id: number) => {
+    try {
+      const res = await fetch(`/api/plan/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
+        method: "DELETE",
+      });
 
       if (!res.ok) {
         const data = await res.json();

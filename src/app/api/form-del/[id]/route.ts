@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  // Await the params object to access the id properly
-  const { id } = await params;
+export async function DELETE(req: NextRequest,  context: { params: Promise<Record<string, string>> }
+) {
+  const { id } = await context.params;
 
-  // Validate ID (simple numeric check if it's a valid number)
   if (!id || isNaN(Number(id))) {
     return new NextResponse(
       JSON.stringify({ message: 'Invalid or missing id' }),

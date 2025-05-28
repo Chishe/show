@@ -1,6 +1,5 @@
 import React, {
   useRef,
-  useMemo,
   useState,
   useEffect,
   useCallback,
@@ -44,11 +43,11 @@ const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
 let id = 0;
 const getId = () => `dndnode_${id++}`;
 
-interface CustomNodeData {
-  label?: string;
-  Or?: string;
-  Defect?: number;
-}
+// interface CustomNodeData {
+//   label?: string;
+//   Or?: string;
+//   Defect?: number;
+// }
 interface Node {
   id: string | number;
   label: string;
@@ -59,7 +58,7 @@ interface Node {
   Defect?: number;
   data: {
     label: React.ReactNode;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }
 
@@ -75,13 +74,13 @@ interface ValueItem {
   max?: number;
   min?: number;
 }
-const customNode: React.FC<{ data: CustomNodeData }> = ({ data }) => (
-  <div style={{ padding: "10px", backgroundColor: "#fff", borderRadius: "8px", textAlign: "center" }}>
-    <div><strong>Label:</strong> {data?.label}</div>
-    <div><strong>Or:</strong> {data?.Or}</div>
-    <div><strong>Defect:</strong> {data?.Defect}</div>
-  </div>
-);
+// const customNode: React.FC<{ data: CustomNodeData }> = ({ data }) => (
+//   <div style={{ padding: "10px", backgroundColor: "#fff", borderRadius: "8px", textAlign: "center" }}>
+//     <div><strong>Label:</strong> {data?.label}</div>
+//     <div><strong>Or:</strong> {data?.Or}</div>
+//     <div><strong>Defect:</strong> {data?.Defect}</div>
+//   </div>
+// );
 
 
 const DnDFlow = () => {
@@ -91,10 +90,9 @@ const DnDFlow = () => {
   const { type } = useDnD();
   const [editingNode, setEditingNode] = useState<FlowNode | null>(null);
 
-  const [disabled, setDisabled] = useState(false);
   const [newLabel, setNewLabel] = useState("");
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [nodesResponse, edgesResponse, valuesResponse] = await Promise.all([
         axios.get<Node[]>("/api/loaded-hvac-nodes"),
@@ -110,16 +108,17 @@ const DnDFlow = () => {
 
       setNodes(
         nodesResponse.data.map((node: Node) => {
-          const nodeData = valuesMap[node.label] || {};
+          const nodeData: ValueItem = valuesMap[node.label] ?? { label: '', value: undefined, max: undefined, min: undefined };
           let backgroundColor = "#41d4a8";
 
           if (nodeData.value !== undefined) {
-            if (nodeData.value > nodeData.max) {
+            if (nodeData.max !== undefined && nodeData.value > nodeData.max) {
               backgroundColor = "#00FF00";
-            } else if (nodeData.value < nodeData.min) {
+            } else if (nodeData.min !== undefined && nodeData.value < nodeData.min) {
               backgroundColor = "#DC143C";
             }
           }
+
 
           return {
             id: node.id.toString(),
@@ -164,7 +163,7 @@ const DnDFlow = () => {
       console.error("Error fetching data:", error);
       toast.error("Error loading nodes or edges.");
     }
-  };
+  }, [setNodes, setEdges]);
 
   useEffect(() => {
     const updateHandlesColor = () => {
@@ -193,7 +192,7 @@ const DnDFlow = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
 
 
@@ -235,7 +234,7 @@ const DnDFlow = () => {
         setNodes((nds) => nds.filter((node) => node.id !== newNode.id));
       }
     },
-    [type]
+    [type, fetchData, setNodes]
   );
 
 
@@ -310,7 +309,7 @@ const DnDFlow = () => {
   const onNodesDelete = (deletedNodes: FlowNode[]) => {
     deletedNodes.forEach((node) => {
       const id = typeof node.id === "string" ? parseInt(node.id, 10) : node.id;
-      deleteEdge(id);
+      deleteNode(id);
     });
   };
 
@@ -321,21 +320,32 @@ const DnDFlow = () => {
     let labelText = node.data?.label;
 
     if (React.isValidElement(labelText)) {
-      const reactElement = labelText as React.ReactElement<any>;
-
+      const reactElement = labelText as React.ReactElement<{ children?: React.ReactNode | React.ReactNode[] }>;
+    
       if (
         reactElement.props &&
         Array.isArray(reactElement.props.children) &&
-        reactElement.props.children.length > 0 &&
-        reactElement.props.children[0].props &&
-        typeof reactElement.props.children[0].props.children === "string"
+        reactElement.props.children.length > 0
       ) {
-        labelText = reactElement.props.children[0].props.children;
+        const firstChild = reactElement.props.children[0];
+    
+        if (firstChild && React.isValidElement(firstChild)) {
+          const firstChildElement = firstChild as React.ReactElement<{ children?: React.ReactNode }>;
+    
+          if (typeof firstChildElement.props.children === "string") {
+            labelText = firstChildElement.props.children;
+          } else {
+            labelText = "";
+          }
+        } else {
+          labelText = "";
+        }
       } else {
         labelText = "";
       }
     }
-
+    
+    
     if (typeof labelText === "string") {
       setNewLabel(labelText);
     } else {

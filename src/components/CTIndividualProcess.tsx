@@ -4,11 +4,10 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-interface TableData {
+interface TableData extends Record<string, unknown> {
   date: string;
   video: string;
   station?: string | number;
-  [key: string]: any;
 }
 
 interface TableComponentProps {
@@ -60,26 +59,30 @@ const TableComponent: React.FC<TableComponentProps> = ({ title, station, apiUrl 
   return (
     <div>
       <div className="overflow-auto">
-        <table className="w-full border-separate border">
-          <thead>
-            <tr className="bg-gray-100">
-              <th className="border p-2">Date & Time</th>
-              <th className="border p-2">Video</th>
-            </tr>
-          </thead>
-          <tbody>
-            {visibleData.map((row, index) => (
-              <tr key={index} className="border text-center">
-                <td className="border p-2 whitespace-nowrap bg-white">
-                  {row.date || "-"}
-                </td>
-                <td className="border p-2 whitespace-nowrap bg-white">
-                  {row.video || "-"}
-                </td>
+        {isLoading ? (
+          <div className="text-center py-4 text-gray-500">Loading...</div>
+        ) : (
+          <table className="w-full border-separate border">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border p-2">Date & Time</th>
+                <th className="border p-2">Video</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {visibleData.map((row, index) => (
+                <tr key={index} className="border text-center">
+                  <td className="border p-2 whitespace-nowrap bg-white">
+                    {row.date || "-"}
+                  </td>
+                  <td className="border p-2 whitespace-nowrap bg-white">
+                    {row.video || "-"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
 
       <Dialog>
@@ -113,7 +116,6 @@ const TableComponent: React.FC<TableComponentProps> = ({ title, station, apiUrl 
   );
 };
 
-// Optional: Define prop types for main component if needed
 interface CTIndividualProcessProps {
   apiUrl?: string;
   label?: string;

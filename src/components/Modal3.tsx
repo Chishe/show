@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect,useCallback  } from "react";
 
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { FaPlus } from "react-icons/fa";
@@ -39,7 +39,7 @@ type Row = {
   stockPart: string;
   sequence: number;
 };
-
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const calculateEndTime = (
   startTime: string,
   qty: string,
@@ -95,18 +95,41 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
     },
   ]);
 
-  const loadPlanData = async () => {
-    const res = await fetch(`/api/plan-c?nametableurl=${encodeURIComponent(
-      nametableurl
-    )}&date=${encodeURIComponent(dateTime)}`
-    )
+  const loadPlanData = useCallback(async () => {
+    const res = await fetch(
+      `/api/plan-c?nametableurl=${encodeURIComponent(
+        nametableurl
+      )}&date=${encodeURIComponent(dateTime)}`
+    );
     if (!res.ok) throw new Error("Failed to fetch");
     const data = await res.json();
     return data;
-  };
+  }, [nametableurl, dateTime]);
+  useEffect(() => {
+    if (isOpen) {
+      loadPlanData().then(setRows).catch(console.error);
+    }
+  }, [isOpen, loadPlanData]); 
+  
 
 
   const handleSubmit = async () => {
+    const hasInvalidRow = rows.some((row) => {
+      return (
+        !row.partNumber?.trim() ||
+        !row.model?.trim() ||
+        !row.qty ||
+        !row.ctTarget ||
+        !row.startTime ||
+        !row.endTime
+      );
+    });
+  
+    if (hasInvalidRow) {
+      alert("กรุณากรอกข้อมูลให้ครบทุกแถวก่อน Submit");
+      return;
+    }
+  
     const payload = rows.map((row, index) => ({
       partnumber: row.partNumber,
       model: row.model,
@@ -116,15 +139,18 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       endtime: row.endTime,
       sequence: index + 1,
     }));
-
+  
     try {
-      const res = await fetch(`/api/insert-plan?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        `/api/insert-plan-3?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
       if (!res.ok) throw new Error("Submit failed");
-
+  
       const updated = await loadPlanData();
       setRows(updated);
       setIsOpen(false);
@@ -137,57 +163,85 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
     }
   };
 
-  useEffect(() => {
-    if (isOpen) {
-      loadPlanData().then(setRows).catch(console.error);
-    }
-  }, [isOpen]);
-
   const updateRow = (id: number, key: keyof Row, value: string) =>
-    setRows((rows) =>
-      rows.map((r) => {
-        if (r.id !== id) return r;
+    setRows((rows) => {
+      const updatedRows = [...rows];
+      const index = updatedRows.findIndex((r) => r.id === id);
+      if (index === -1) return rows;
   
-        const updated = { ...r, [key]: value };
+      const updated = { ...updatedRows[index], [key]: value };
   
-        if (
-          ["startTime", "qty", "ctTarget"].includes(key) &&
-          updated.startTime &&
-          updated.qty &&
-          updated.ctTarget
-        ) {
-          const [startH, startM] = updated.startTime.split(":").map(Number);
-          const startDate = new Date();
-
-          startDate.setHours(startH, startM, 0, 0);
+      if (
+        ["startTime", "qty", "ctTarget"].includes(key) &&
+        updated.startTime &&
+        updated.qty &&
+        updated.ctTarget
+      ) {
+        const [startH, startM] = updated.startTime.split(":").map(Number);
+        const startDate = new Date();
+        startDate.setHours(startH, startM, 0, 0);
   
-          const ct = parseInt(updated.ctTarget);
-          let qty = parseInt(updated.qty);
+        const ct = parseInt(updated.ctTarget);
+        const qty = parseInt(updated.qty);
   
-          const durationSeconds = qty * ct;
-          const endDate = new Date(startDate.getTime() + durationSeconds * 1000);
-
-          const limitDate = new Date(startDate);
+        const durationSeconds = qty * ct;
+        const endDate = new Date(startDate.getTime() + durationSeconds * 1000);
+  
+        const limitDate = new Date(startDate);
+        limitDate.setDate(limitDate.getDate() + 1);
+        limitDate.setHours(6, 50, 0, 0);
+  
+        if (endDate > limitDate) {
+          const availableSeconds = (limitDate.getTime() - startDate.getTime()) / 1000;
+          const maxQty = Math.floor(availableSeconds / ct);
+          updated.qty = maxQty.toString();
+          updated.endTime = "06:50";
+        } else {
+          const endH = endDate.getHours().toString().padStart(2, "0");
+          const endM = endDate.getMinutes().toString().padStart(2, "0");
+          updated.endTime = `${endH}:${endM}`;
+        }
+      }
+  
+      updatedRows[index] = updated;
+  
+      // ✅ อัปเดต startTime แถวถัดไป
+      if (index + 1 < updatedRows.length) {
+        const next = { ...updatedRows[index + 1] };
+        next.startTime = updated.endTime;
+  
+        if (next.startTime && next.qty && next.ctTarget) {
+          const [nextStartH, nextStartM] = next.startTime.split(":").map(Number);
+          const nextStartDate = new Date();
+          nextStartDate.setHours(nextStartH, nextStartM, 0, 0);
+  
+          const nextCt = parseInt(next.ctTarget);
+          const nextQty = parseInt(next.qty);
+  
+          const nextEndDate = new Date(nextStartDate.getTime() + nextQty * nextCt * 1000);
+          const limitDate = new Date(nextStartDate);
           limitDate.setDate(limitDate.getDate() + 1);
           limitDate.setHours(6, 50, 0, 0);
   
-          if (endDate > limitDate) {
-            const availableSeconds = (limitDate.getTime() - startDate.getTime()) / 1000;
-            const maxQty = Math.floor(availableSeconds / ct);
-  
-            updated.qty = maxQty.toString();
-            updated.endTime = "06:50";
+          if (nextEndDate > limitDate) {
+            const availableSeconds = (limitDate.getTime() - nextStartDate.getTime()) / 1000;
+            const maxQty = Math.floor(availableSeconds / nextCt);
+            next.qty = maxQty.toString();
+            next.endTime = "06:50";
           } else {
-            const endH = endDate.getHours().toString().padStart(2, "0");
-            const endM = endDate.getMinutes().toString().padStart(2, "0");
-            updated.endTime = `${endH}:${endM}`;
+            const endH = nextEndDate.getHours().toString().padStart(2, "0");
+            const endM = nextEndDate.getMinutes().toString().padStart(2, "0");
+            next.endTime = `${endH}:${endM}`;
           }
         }
   
-        return updated;
-      })
-    );
-
+        updatedRows[index + 1] = next;
+      }
+  
+      return updatedRows;
+    });
+  
+  
   const addRow = () =>
     setRows((rows) => {
       if (rows.length === 0) {
@@ -245,11 +299,11 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       ];
     });
 
-    const deleteRow = async (id: number) => {
-      try {
-        const res = await fetch(`/api/plan/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
-          method: "DELETE",
-        });
+  const deleteRow = async (id: number) => {
+    try {
+      const res = await fetch(`/api/plan/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
+        method: "DELETE",
+      });
 
       if (!res.ok) {
         const data = await res.json();

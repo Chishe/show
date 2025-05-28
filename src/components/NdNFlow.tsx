@@ -1,18 +1,15 @@
 import React, {
   useRef,
-  useMemo,
   useState,
   useEffect,
   useCallback,
 } from "react";
 import ReactFlow, {
-  NodeChange,
   Connection,
   Edge,
   Node,
   addEdge,
   useEdgesState,
-  useNodesState,
   Controls,
   Background,
   Position,
@@ -21,13 +18,11 @@ import axios from "axios";
 import { useDnD } from "@/components/DnDContext";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Link from 'next/link';
-import { DefaultContext } from "react-icons/lib";
 const nodeDefaults = {
   sourcePosition: Position.Right,
   targetPosition: Position.Left,
   style: {
-    Background: "#41d4a8",
+    backgroundColor: "#41d4a8",
     border: "none",
     borderRadius: "8px",
     width: "100px",
@@ -43,34 +38,34 @@ const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
 
 let id = 0;
 const getId = () => `dndnode_${id++}`;
-interface DataType {
-  label?: string;
-  Or?: string | number;
-  Defect?: string | number;
-}
-const customNode = ({ data }: { data: DataType }) => (
-  <div
-    style={{
-      padding: "10px",
-      backgroundColor: "#fff",
-      borderRadius: "8px",
-      textAlign: "center",
-    }}
-  >
-    <div>
-      <strong>Label:</strong> {data?.label}
-    </div>
-    <div>
-      <strong>Or:</strong> {data?.Or}
-    </div>
-    <div>
-      <strong>Defect:</strong> {data?.Defect}
-    </div>
-  </div>
-);
+// interface DataType {
+//   label?: string;
+//   Or?: string | number;
+//   Defect?: string | number;
+// }
+// const customNode = ({ data }: { data: DataType }) => (
+//   <div
+//     style={{
+//       padding: "10px",
+//       backgroundColor: "#fff",
+//       borderRadius: "8px",
+//       textAlign: "center",
+//     }}
+//   >
+//     <div>
+//       <strong>Label:</strong> {data?.label}
+//     </div>
+//     <div>
+//       <strong>Or:</strong> {data?.Or}
+//     </div>
+//     <div>
+//       <strong>Defect:</strong> {data?.Defect}
+//     </div>
+//   </div>
+// );
 interface ItemType {
   label: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface NodeType {
@@ -81,7 +76,7 @@ interface NodeType {
   Defect?: string | number;
   x: number;
   y: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 interface EdgeType {
   id: string | number;
@@ -100,12 +95,12 @@ const DnDFlow = () => {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { type } = useDnD();
   const [editingNode, setEditingNode] = React.useState<Node | null>(null);
-  const [disabled, setDisabled] = useState(false);
+
   const [newLabel, setNewLabel] = React.useState<string>("");
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [nodes, setNodes] = useState<CustomNode[]>([]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [nodesResponse, edgesResponse, valuesResponse] = await Promise.all([
         axios.get("/api/loaded-brs-nodes"),
@@ -133,30 +128,33 @@ const DnDFlow = () => {
         }
         return undefined;
       }
-      
-      
+
+
       const bgNodesResponses = await Promise.all(
         nodesResponse.data.map((node: NodeType) => {
           const tableName = transformLabel(node.label);
-      
+
           return tableName
             ? axios
-                .get(`/api/bg-nodes?nametableurl=${encodeURIComponent(tableName)}`)
-                .catch((err) => {
-                  console.warn(`Skipping bg-node for ${node.label}:`, err.message);
-                  return { data: null };
-                })
-            : Promise.resolve({ data: null }); 
+              .get(`/api/bg-nodes?nametableurl=${encodeURIComponent(tableName)}`)
+              .catch((err) => {
+                console.warn(`Skipping bg-node for ${node.label}:`, err.message);
+                return { data: null };
+              })
+            : Promise.resolve({ data: null });
         })
       );
 
 
-      const bgDataMap = nodesResponse.data.reduce((acc: Record<string, any>, node: NodeType, index: number) => {
+      type BgDataMap = Record<string, unknown>; // or `Record<string, object>` if you expect non-primitives
+
+      const bgDataMap = nodesResponse.data.reduce((acc: BgDataMap, node: NodeType, index: number) => {
         if (node.label && bgNodesResponses[index]?.data) {
           acc[node.label] = bgNodesResponses[index].data;
         }
         return acc;
-      }, {});
+      }, {} as BgDataMap);
+      
 
       setNodes(
         nodesResponse.data.map((node: NodeType) => {
@@ -165,11 +163,11 @@ const DnDFlow = () => {
           const orValue = (bgNodeData?.[0]?.or_percent ?? 0) + "%";
           let backgroundColor = "#41d4a8";
           let handleRightColor = "#41d4a8";
-      
+
           if (nodeData.result !== undefined) {
             handleRightColor = nodeData.result === 0 ? "#00FF00" : "#DC143C";
           }
-      
+
           const nodeColor = bgNodeData?.[0]?.node_color || null;
           if (nodeColor === "red") {
             backgroundColor = "#DC143C";
@@ -178,7 +176,7 @@ const DnDFlow = () => {
           } else if (nodeColor === "yellow") {
             backgroundColor = "#FFD700";
           }
-      
+
           return {
             id: node.id.toString(),
             type: node.type,
@@ -190,11 +188,8 @@ const DnDFlow = () => {
                       {node.label}
                     </div>
                     <div className="nowrap-text bg-emerald-200 rounded-b-sm w-full">
-                    {orValue} | {node.Defect || 0}
+                      {orValue} | {node.Defect || 0}
                     </div>
-                    {/* <div className="text-[8px] mt-1 text-gray-600">
-                      {bgNodeData?.someField || ""}
-                    </div> */}
                     <div className="hover-container mt-2">
                       <a
                         href={
@@ -231,7 +226,7 @@ const DnDFlow = () => {
       console.error("Error fetching data:", error);
       toast.error("Error loading nodes or edges.");
     }
-  };
+  }, [setEdges]);
 
 
 
@@ -250,8 +245,6 @@ const DnDFlow = () => {
         if (handleRight) {
           (handleRight as HTMLElement).style.backgroundColor = node.handleRightColor;
         }
-
-        // console.log(`Node ${node.id} handle color set to: ${node.handleRightColor}`);
       });
     };
 
@@ -263,7 +256,6 @@ const DnDFlow = () => {
 
   useEffect(() => {
     fetchData();
-
   }, [fetchData]);
 
 
@@ -307,13 +299,13 @@ const DnDFlow = () => {
         setNodes((nds) => nds.filter((node) => node.id !== newNode.id));
       }
     },
-    [type]
+    [type, fetchData]
   );
 
   const handleConnect = useCallback(
     (params: Connection | Edge) => {
       setEdges((eds) => addEdge(params, eds));
-
+  
       axios
         .post("/api/brs-edges", {
           source: params.source,
@@ -327,8 +319,9 @@ const DnDFlow = () => {
           toast.error("Error adding edge. Please try again.");
         });
     },
-    [setEdges]
+    [setEdges] // ✅ satisfies lint rule
   );
+  
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -384,8 +377,29 @@ const DnDFlow = () => {
     let labelText = node.data.label;
 
     if (React.isValidElement(labelText)) {
-      const element = labelText as React.ReactElement<any, any>;
-      labelText = element.props.children?.[0]?.props?.children ?? '';
+      const reactElement = labelText as React.ReactElement<{ children?: React.ReactNode | React.ReactNode[] }>;
+    
+      if (
+        reactElement.props &&
+        Array.isArray(reactElement.props.children) &&
+        reactElement.props.children.length > 0
+      ) {
+        const firstChild = reactElement.props.children[0];
+    
+        if (firstChild && React.isValidElement(firstChild)) {
+          const firstChildElement = firstChild as React.ReactElement<{ children?: React.ReactNode }>;
+    
+          if (typeof firstChildElement.props.children === "string") {
+            labelText = firstChildElement.props.children;
+          } else {
+            labelText = "";
+          }
+        } else {
+          labelText = "";
+        }
+      } else {
+        labelText = "";
+      }
     }
 
     setNewLabel(labelText);
@@ -416,6 +430,7 @@ const DnDFlow = () => {
         toast.success("Label updated successfully!");
         window.location.reload();
         setEditingNode(null);
+        fetchData();
       } catch (error) {
         console.error("Error updating label:", error);
         toast.error("Error updating label.");

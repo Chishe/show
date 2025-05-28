@@ -16,8 +16,6 @@ interface DataItem {
 
 const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
   const [data, setData] = useState<DataItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
   const formatDate = (utcDate: string | Date): string => {
     const date = new Date(utcDate);
     return date.toISOString().slice(0, 16).replace("T", " ");
@@ -26,8 +24,6 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true);
-  
       try {
         const response = await fetch(apiUrl);
         const result: DataItem[] = await response.json();
@@ -47,13 +43,12 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
       } catch (error) {
         toast.error("Failed to load data", { autoClose: 4000 });
         console.error("Error fetching data:", error);
-      } finally {
-        setIsLoading(false);
       }
     };
   
     fetchData();
   }, [station, apiUrl]);
+  
 
   const visibleData = Array.from(
     { length: 4 },

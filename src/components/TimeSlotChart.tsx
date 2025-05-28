@@ -11,6 +11,8 @@ import {
   ChartOptions,
   TooltipItem,
 } from "chart.js";
+import type { ChartDataset } from "chart.js";
+
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { GiCardboardBox } from "react-icons/gi";
 import { Line } from "react-chartjs-2";
@@ -37,22 +39,15 @@ interface ChartData {
 
 interface ChartState {
   labels: string[];
-  datasets: Array<{
-    label: string;
-    data: (number | null)[];
-    borderColor: string;
-    fill: boolean;
-    borderDash?: [number, number];
-    pointRadius?: number;
-    [key: string]: any;
-  }>;
+  datasets: ChartDataset<"line", (number | null)[]>[];
 }
 interface TimeSlotChartProps {
   nametableurl: string;
   dateTime: string;
 }
 
-const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
+
+const TimeSlotChart = ({ nametableurl, dateTime }: TimeSlotChartProps) => {
   const [chartData, setChartData] = useState<ChartState | null>(null);
   const [timeSlotRefs, setTimeSlotRefs] = useState<string[]>([]);
   const [partnumberRefs, setpartnumbeRefs] = useState<string[]>([]);
@@ -83,7 +78,7 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
           const slots: string[] = [];
           const pn: string[] = [];
           let counter = 1;
-  
+
           data.forEach((d) => {
             const tArr = d.targetA[0];
             const aArr = d.actualA[0];
@@ -99,7 +94,7 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
               }
             });
           });
-  
+
           setTimeSlotRefs(slots);
           setpartnumbeRefs(pn);
           setChartData({
@@ -144,13 +139,13 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
           console.error("Error fetching chart data:", error);
         });
     };
-  
+
     fetchChartData();
-  
+
     const interval = setInterval(fetchChartData, 1000);
-  
+
     return () => clearInterval(interval);
-  }, [nametableurl,dateTime]);
+  }, [nametableurl, dateTime]);
 
   const options: ChartOptions<"line"> = {
     responsive: true,
@@ -277,16 +272,6 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
   const handleSubmit = () => {
     if (selectedPoint === null) return;
 
-    const now = new Date();
-    const formattedDue = `${now.getDate().toString().padStart(2, "0")}/${(
-      now.getMonth() + 1
-    )
-      .toString()
-      .padStart(2, "0")}/${now.getFullYear()}:${now
-        .getHours()
-        .toString()
-        .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-        
     const newRecord = {
       situation: selectedLoss,
       problemType: selectedLoss === "Big Loss" ? selectedStatus : "",
@@ -295,7 +280,7 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
       details: detail,
       action: "",
       pic: "",
-      due:dateTime,
+      due: dateTime,
       status: "Pending",
       effectiveLot: `Lot-${timeSlotRefs[selectedPoint]}`,
     };
@@ -313,12 +298,13 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
         if (!res.ok) throw new Error("Failed to insert record");
         return res.json();
       })
-      .then((data) => {
+      .then(() => {
         toast.success("Record successfully inserted!");
       })
-      .catch((error) => {
+      .catch(() => {
         toast.error("Error inserting record!");
       });
+
 
     setShowPopup(false);
   };

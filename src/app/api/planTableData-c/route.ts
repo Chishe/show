@@ -52,16 +52,33 @@ const TIME_SLOTS_WITH_5 = new Set([
 ]);
 
 // ฟังก์ชันเติม null ให้ครบตามจำนวนที่กำหนด
-function fillNulls(arr: any, timeSlot: string): (number | null)[] {
+function fillNulls(input: unknown, timeSlot: string): (number | null)[] {
   const expectedLength = TIME_SLOTS_WITH_5.has(timeSlot) ? 5 : 6;
-  if (!Array.isArray(arr) || arr.length === 0) {
-    return new Array(expectedLength).fill(null);
+
+  let arr: unknown[] = [];
+
+  if (Array.isArray(input)) {
+    arr = input;
+  } else if (typeof input === "string") {
+    try {
+      const parsed = JSON.parse(input);
+      if (Array.isArray(parsed)) {
+        arr = parsed;
+      }
+    } catch (e) {
+      console.warn(`Invalid JSON string in fillNulls:`, input, e);
+    }    
   }
-  const newArr = [...arr];
-  while (newArr.length < expectedLength) {
-    newArr.push(null);
+
+  const result: (number | null)[] = arr.map((item) =>
+    typeof item === "number" ? item : null
+  );
+
+  while (result.length < expectedLength) {
+    result.push(null);
   }
-  return newArr;
+
+  return result;
 }
 
 export async function GET(request: NextRequest) {

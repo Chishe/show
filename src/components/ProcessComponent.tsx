@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState} from "react";
 import { FaUserSecret } from "react-icons/fa";
 
 const ProcessComponent = () => {
@@ -11,30 +11,33 @@ const ProcessComponent = () => {
   const [inputValues, setInputValues] = useState(Array(7).fill(""));
 
   const stdCTList = [10, 12, 8, 15, 9, 14, 11];
-  const [currentCTList, setCurrentCTList] = useState([9, 13, 7, 16, 8, 13, 12]);
-  const [timeList, setTimeList] = useState(Array(7).fill("00:00:00"));
+  const [currentCTList] = useState([9, 13, 7, 16, 8, 13, 12]);
+  // const [timeList, setTimeList] = useState(Array(7).fill("00:00:00"));
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = new Date();
-      const formattedTime = now.toLocaleTimeString("en-GB");
-      setTimeList(Array(7).fill(formattedTime));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     const now = new Date();
+  //     const formattedTime = now.toLocaleTimeString("en-GB");
+  //     setTimeList(Array(7).fill(formattedTime));
+  //   }, 1000);
+  //   return () => clearInterval(interval);
+  // }, []);
+  
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
     const hh = String(Math.floor(seconds / 3600)).padStart(2, "0");
     const mm = String(Math.floor((seconds % 3600) / 60)).padStart(2, "0");
     const ss = String(seconds % 60).padStart(2, "0");
     return `${hh}:${mm}:${ss}`;
   };
+  
 
-  const handleChange = (index, value) => {
+  const handleChange = (index: number, value: string) => {
     const newValues = [...inputValues];
     newValues[index] = value;
     setInputValues(newValues);
   };
+  
 
   const greenCount = currentCTList.filter(
     (ct, index) => ct <= stdCTList[index]

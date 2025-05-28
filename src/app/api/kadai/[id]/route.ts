@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 
-export async function PUT(req: NextRequest, context: { params: { id: string } }) {
-  const { id } = context.params; 
+export async function PUT(req: NextRequest,  context: { params: Promise<Record<string, string>> }
+) {
+  const { id } = await context.params;
 
   if (!id) {
     return new NextResponse(

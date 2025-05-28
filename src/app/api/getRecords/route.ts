@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 
-function convertDateToDDMMYYYY(dateStr: string): string {
-  const [year, month, day] = dateStr.split("-");
-  return `${day}/${month}/${year}`;
-}
-
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -18,8 +13,6 @@ export async function GET(request: NextRequest) {
     if (!/^[a-zA-Z0-9_]+$/.test(nametableurl)) {
       return NextResponse.json({ error: "Invalid table name" }, { status: 400 });
     }
-
-    const formattedDate = convertDateToDDMMYYYY(dateParam);
 
     const sql = `
       SELECT itemno, situation, problemtype, factor, partno, details, action, pic, due, status, effectivelot 

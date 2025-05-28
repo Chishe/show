@@ -12,6 +12,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { FaFileUpload, FaEdit } from "react-icons/fa";
 import { MdDeleteForever } from "react-icons/md";
+
 interface TableComponentProps {
   title: string;
   station: number | string;
@@ -25,17 +26,18 @@ interface KadaiItem {
 }
 
 interface DataItem {
-  id?: number;
+  id: number;
   station: string;
   due: string;
-  [key: string]: any;
+  item: string;
+  [key: string]: string | number | undefined;
 }
+
 const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
   const [data, setData] = useState<KadaiItem[]>([]);
   const [item, setItem] = useState("");
   const [due, setDue] = useState("");
   const [editIndex, setEditIndex] = useState<number | null>(null);
-
   const [isLoading, setIsLoading] = useState(false);
 
   const resetForm = () => {
@@ -45,8 +47,13 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
   };
 
   const handleAddOrUpdate = async () => {
-    const payload = { item, station };
-  
+    const payload = { item, due, station: station.toString() };
+
+    if (!item || !due) {
+      toast.error("Please enter both item and due date", { autoClose: 2000 });
+      return;
+    }
+
     if (editIndex !== null) {
       const id = data[editIndex].id;
       try {
@@ -55,18 +62,16 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
           payload,
           { headers: { "Content-Type": "application/json" } }
         );
-        console.log("Update Response:", response);
-  
+
         if (response.status === 200 && response.data.result) {
           toast.success("Kadai updated successfully!", { autoClose: 2000 });
-  
+
           const updatedItem = response.data.result[0];
-  
+
           setData((prevData) =>
             prevData.map((item) => (item.id === id ? updatedItem : item))
           );
-  
-          setEditIndex(null);
+
           resetForm();
         } else {
           toast.error("Failed to update kadai", { autoClose: 2000 });
@@ -82,7 +87,7 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
           payload,
           { headers: { "Content-Type": "application/json" } }
         );
-  
+
         if (response.status === 201 && response.data.result) {
           toast.success("Kadai added successfully!", { autoClose: 2000 });
           setData((prevData) => [...prevData, response.data.result[0]]);
@@ -96,7 +101,6 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
       }
     }
   };
-  
 
   const handleDeleteKadai = async (id: number) => {
     try {
@@ -108,7 +112,7 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
           },
         }
       );
-  
+
       if (response.status === 200) {
         toast.success("Kadai deleted successfully!", { autoClose: 2000 });
         setData((prevData) => prevData.filter((item) => item.id !== id));
@@ -117,7 +121,7 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
           autoClose: 2000,
         });
       }
-    }catch (error: unknown) {
+    } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
         console.error("Error deleting kadai:", error.response || error.message);
         toast.error(
@@ -132,15 +136,12 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
         toast.error("Unexpected error deleting kadai", { autoClose: 4000 });
       }
     }
-    
   };
-  
 
   const formatDate = (utcDate: string | Date): string => {
-    const due = new Date(utcDate);
-    return due.toISOString().slice(0, 16).replace("T", " ");
+    const date = new Date(utcDate);
+    return date.toISOString().slice(0, 16).replace("T", " ");
   };
-  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -148,19 +149,19 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
       try {
         const response = await fetch(apiUrl);
         const result: DataItem[] = await response.json();
-  
+
         const filteredData = result
           .filter((item: DataItem) => item.station === station.toString())
           .map((item: DataItem) => ({
             ...item,
             due: formatDate(item.due),
           }));
-  
+
         const formattedData = filteredData.map((item: DataItem) => ({
           ...item,
-          id: item.id || Math.random(),
+          id: item.id || Date.now() + Math.random(),
         }));
-  
+
         setData(formattedData);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -168,19 +169,22 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
         setIsLoading(false);
       }
     };
-  
-    const interval = setInterval(fetchData, 1000);
+
+    fetchData(); // Fetch immediately on mount
+    const interval = setInterval(fetchData, 5000); // Fetch every 5 seconds to reduce load
     return () => clearInterval(interval);
   }, [station, apiUrl]);
-  
-  
+
   const visibleData = Array.from(
     { length: 4 },
-    (_, i) => data[i] ?? { item: "", due: "" }
+    (_, i) => data[i] ?? { item: "", due: "", id: `empty-${i}` }
   );
 
   return (
     <div className="overflow-auto">
+      {isLoading && (
+        <div className="text-center py-2 text-blue-600 font-semibold">Loading...</div>
+      )}
       <table className="w-full border-separate border">
         <thead>
           <tr className="bg-gray-100">
@@ -189,8 +193,8 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
           </tr>
         </thead>
         <tbody>
-          {visibleData.map((row) => (
-            <tr key={row.id || Math.random()} className="border text-center">
+          {visibleData.map((row, idx) => (
+            <tr key={row.id ?? `row-${idx}`} className="border text-center">
               <td className="border p-2 whitespace-nowrap bg-white">
                 {row.item || "-"}
               </td>
@@ -217,7 +221,14 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
               placeholder="Item"
               value={item}
               onChange={(e) => setItem(e.target.value)}
-              className="border p-2 w-1/2"
+              className="border p-2 w-1/3"
+            />
+            <input
+              type="datetime-local"
+              placeholder="Due"
+              value={due}
+              onChange={(e) => setDue(e.target.value)}
+              className="border p-2 w-1/3"
             />
             <button
               onClick={handleAddOrUpdate}
@@ -257,18 +268,21 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
                       <td className="border p-2 whitespace-nowrap bg-white">
                         <button
                           onClick={() => {
-                            setEditIndex(
-                              data.findIndex((d) => d.id === row.id)
-                            );
+                            setEditIndex(data.findIndex((d) => d.id === row.id));
                             setItem(row.item);
+                            setDue(row.due);
                           }}
-                          className="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-2 rounded-sm"
+                          className="px-2 text-green-600 hover:text-green-700"
+                          title="Edit"
+                          aria-label={`Edit item ${row.item}`}
                         >
                           <FaEdit />
                         </button>
                         <button
                           onClick={() => handleDeleteKadai(row.id)}
-                          className="bg-red-500 hover:bg-red-600 text-white px-2 py-2 rounded-sm ml-2"
+                          className="px-2 text-red-600 hover:text-red-700"
+                          title="Delete"
+                          aria-label={`Delete item ${row.item}`}
                         >
                           <MdDeleteForever />
                         </button>
@@ -281,47 +295,9 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
           </div>
         </DialogContent>
       </Dialog>
+      <ToastContainer position="bottom-right" />
     </div>
   );
 };
 
-const getLegendColor = (label) => {
-  switch (label) {
-    case "CTIndividualProcess":
-      return "bg-yellow-500";
-    case "Loss In-Process":
-      return "bg-fuchsia-500";
-    case "Kadai List":
-      return "bg-rose-500";
-    default:
-      return "bg-gray-400";
-  }
-};
-export default function KadaiList({
-  apiUrl = "/api/kadai-list",
-  label = "Kadai List",
-}) {
-  const stations = [1, 2, 3, 4, 5, 6, 7];
-
-  return (
-    <div className="mt-4">
-      <ToastContainer />
-      <fieldset className="border-4 border-gray-300 p-4 rounded-lg bg-[#465e86]">
-        <legend className={`rounded p-2 h-10 w-72 ${getLegendColor(label)}`}>
-          <h1 className="text-2xl font-bold mb-4 text-center">{label}</h1>
-        </legend>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
-          {stations.map((station) => (
-            <TableComponent
-              key={station}
-              title={`Table ${station}`}
-              station={station}
-              apiUrl={apiUrl}
-            />
-          ))}
-        </div>
-      </fieldset>
-    </div>
-  );
-}
+export default TableComponent;

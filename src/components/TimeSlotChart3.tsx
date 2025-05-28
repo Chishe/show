@@ -11,6 +11,8 @@ import {
   ChartOptions,
   TooltipItem,
 } from "chart.js";
+import type { ChartDataset } from "chart.js";
+
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { GiCardboardBox } from "react-icons/gi";
 import { Line } from "react-chartjs-2";
@@ -37,15 +39,7 @@ interface ChartData {
 
 interface ChartState {
   labels: string[];
-  datasets: Array<{
-    label: string;
-    data: (number | null)[];
-    borderColor: string;
-    fill: boolean;
-    borderDash?: [number, number];
-    pointRadius?: number;
-    [key: string]: any;
-  }>;
+  datasets: ChartDataset<"line", (number | null)[]>[];
 }
 interface TimeSlotChartProps {
   nametableurl: string;
@@ -278,15 +272,6 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
   const handleSubmit = () => {
     if (selectedPoint === null) return;
 
-    const now = new Date();
-    const formattedDue = `${now.getDate().toString().padStart(2, "0")}/${(
-      now.getMonth() + 1
-    )
-      .toString()
-      .padStart(2, "0")}/${now.getFullYear()}:${now
-        .getHours()
-        .toString()
-        .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
     const newRecord = {
       situation: selectedLoss,
@@ -314,12 +299,13 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
         if (!res.ok) throw new Error("Failed to insert record");
         return res.json();
       })
-      .then((data) => {
+      .then(() => {
         toast.success("Record successfully inserted!");
       })
-      .catch((error) => {
+      .catch(() => {
         toast.error("Error inserting record!");
       });
+      
 
     setShowPopup(false);
   };
