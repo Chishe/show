@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const query = `
-SELECT id, sequence, partnumber, model, qty, cttarget, starttime, endtime
+SELECT id, sequence, partnumber, model, qty, cttarget,starttime,endtime
 FROM plan_${table}
 WHERE plandate = $1 and jude = 'day'
   AND NOT (

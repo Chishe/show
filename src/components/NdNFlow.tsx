@@ -154,7 +154,7 @@ const DnDFlow = () => {
         }
         return acc;
       }, {} as BgDataMap);
-      
+
 
       setNodes(
         nodesResponse.data.map((node: NodeType) => {
@@ -229,7 +229,17 @@ const DnDFlow = () => {
   }, [setEdges]);
 
 
+  useEffect(() => {
 
+    const intervalId = setInterval(() => {
+      fetchData().catch((e) => {
+        console.error("Fetch failed:", e);
+        toast.error("Error loading nodes or edges.");
+      });
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [fetchData]);
   useEffect(() => {
     const updateHandlesColor = () => {
       const wrapper = reactFlowWrapper.current;
@@ -305,7 +315,7 @@ const DnDFlow = () => {
   const handleConnect = useCallback(
     (params: Connection | Edge) => {
       setEdges((eds) => addEdge(params, eds));
-  
+
       axios
         .post("/api/brs-edges", {
           source: params.source,
@@ -321,7 +331,7 @@ const DnDFlow = () => {
     },
     [setEdges] // ✅ satisfies lint rule
   );
-  
+
 
   const onDragOver = useCallback((event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -378,17 +388,17 @@ const DnDFlow = () => {
 
     if (React.isValidElement(labelText)) {
       const reactElement = labelText as React.ReactElement<{ children?: React.ReactNode | React.ReactNode[] }>;
-    
+
       if (
         reactElement.props &&
         Array.isArray(reactElement.props.children) &&
         reactElement.props.children.length > 0
       ) {
         const firstChild = reactElement.props.children[0];
-    
+
         if (firstChild && React.isValidElement(firstChild)) {
           const firstChildElement = firstChild as React.ReactElement<{ children?: React.ReactNode }>;
-    
+
           if (typeof firstChildElement.props.children === "string") {
             labelText = firstChildElement.props.children;
           } else {

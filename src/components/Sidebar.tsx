@@ -1,7 +1,7 @@
 import { FaFileUpload, FaEdit } from "react-icons/fa";
 import { MdDeleteForever } from "react-icons/md";
 import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";  // Import toastify styles
+import "react-toastify/dist/ReactToastify.css";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useDnD } from "./DnDContext";
@@ -12,10 +12,29 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const NodesForm = ({ closeModal }) => {
-  const [nodes, setNodes] = useState([]);
-  const [formData, setFormData] = useState({ label: "", value: "", min: "", max: "" });
-  const [editId, setEditId] = useState(null);
+type Node = {
+  id: number;
+  label: string;
+  value: string;
+  min: string;
+  max: string;
+};
+
+type FormData = {
+  label: string;
+  value: string;
+  min: string;
+  max: string;
+};
+
+type NodesFormProps = {
+  closeModal: () => void;
+};
+
+const NodesForm = ({ closeModal }: NodesFormProps) => {
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [formData, setFormData] = useState<FormData>({ label: "", value: "", min: "", max: "" });
+  const [editId, setEditId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchNodes();
@@ -30,11 +49,11 @@ const NodesForm = ({ closeModal }) => {
     }
   };
 
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const valueNum = parseFloat(formData.value);
@@ -42,11 +61,6 @@ const NodesForm = ({ closeModal }) => {
     const maxNum = parseFloat(formData.max);
 
     if (isNaN(valueNum) || isNaN(minNum) || isNaN(maxNum)) {
-      console.error("Invalid numeric values:", {
-        value: formData.value,
-        min: formData.min,
-        max: formData.max,
-      });
       alert("Please ensure all numeric fields (value, min, max) are valid numbers.");
       return;
     }
@@ -75,12 +89,12 @@ const NodesForm = ({ closeModal }) => {
     }
   };
 
-  const handleEdit = (node) => {
+  const handleEdit = (node: Node) => {
     setFormData(node);
     setEditId(node.id);
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: number) => {
     if (window.confirm("Are you sure you want to delete this node?")) {
       try {
         await axios.delete(`/api/form-del/${id}`);
@@ -135,7 +149,6 @@ const NodesForm = ({ closeModal }) => {
             </table>
           </div>
 
-
           <form onSubmit={handleSubmit} className="mt-4">
             <input type="text" name="label" value={formData.label} onChange={handleInputChange} placeholder="Label" className="w-full p-2 border mb-2" required />
             <input type="number" name="value" value={formData.value} onChange={handleInputChange} placeholder="Value" className="w-full p-2 border mb-2" required />
@@ -159,7 +172,7 @@ const Sidebar = () => {
   const { setType } = useDnD();
   const [open, setOpen] = useState(false);
 
-  const onDragStart = (event: React.DragEvent, type: string) => {
+  const onDragStart = (event: React.DragEvent<HTMLDivElement>, type: string) => {
     setType(type);
     event.dataTransfer.effectAllowed = "move";
   };

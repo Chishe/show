@@ -62,17 +62,17 @@ export async function POST(request: NextRequest) {
     `;
 
     const brsValues = [
-      columnName,                    // line_number
-      newRecord.partNo,             // part_number
-      "test",                       // process_name
-      "Safety",                     // category
-      columnName,                   // location
-      "0.00",                       // operating_rate
-      lineStatus,                   // line_status
-      " ",                          // product
-      " ",                          // problem
-      newRecord.action || " ",      // action
-      newRecord.pic || " ",         // pic
+      columnName,                    
+      newRecord.partNo,             
+      "test",                      
+      "Safety",                     
+      columnName,                  
+      "0.00",                      
+      lineStatus,                   
+      " ",                          
+      " ",                          
+      newRecord.action || " ",     
+      newRecord.pic || " ",        
     ];
 
     const brsResult = await pool.query(brsQuery, brsValues);

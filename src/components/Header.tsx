@@ -15,17 +15,17 @@ export default function Header() {
       case "/operation":
         return "Operation";
       case "/loss_core_1":
-        return "Loss Monitoring Core#1";
+        return "Dekidaka & Loss Monitoring Core#1";
       case "/loss_core_2":
-        return "Loss Monitoring Core#2";
+        return "Dekidaka & Loss Monitoring Core#2";
       case "/loss_core_3":
-        return "Loss Monitoring Core#3";
+        return "Dekidaka & Loss Monitoring Core#3";
       case "/loss_core_4":
-        return "Loss Monitoring Core#4";
+        return "Dekidaka & Loss Monitoring Core#4";
       case "/loss_core_5":
-        return "Loss Monitoring Core#5";
+        return "Dekidaka & Loss Monitoring Core#5";
       case "/loss_core_6":
-        return "Loss Monitoring Core#6";
+        return "Dekidaka & Loss Monitoring Core#6";
       default:
         return "BRS";
     }

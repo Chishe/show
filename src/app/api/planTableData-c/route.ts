@@ -94,20 +94,30 @@ export async function GET(request: NextRequest) {
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return NextResponse.json({ error: "Invalid or missing date" }, { status: 400 });
     }
-
     const rowsQuery = `
     SELECT r.seq, r.partnumber, r.partdimension, r.firstpiece, r.machinestatus, r.componentstatus, 
            r.target, r.actual, 
            COALESCE(
-             jsonb_object_agg(ts.timeSlot, jsonb_build_object('target', ts.target, 'actual', ts.actual)), '{}'
+             jsonb_object_agg(
+               ts.timeSlot,
+               jsonb_build_object('target', ts.target, 'actual', ts.actual)
+             ), '{}'
            ) AS timeslots
-    FROM rows_${nametableurl} r
+    FROM (
+      SELECT DISTINCT ON (partnumber) id, partnumber
+      FROM plan_${nametableurl}
+      ORDER BY partnumber, id
+    ) p
+    JOIN rows_${nametableurl} r ON r.partnumber = p.partnumber
     JOIN timeSlots_${nametableurl} ts ON r.seq = ts.row_id
     WHERE ts.date = $1
       AND ts.timeSlot IN (${TIME_SLOTS_ORDER.map((_, i) => `$${i + 2}`).join(",")})
-    GROUP BY r.seq
-    ORDER BY r.seq ASC;
+    GROUP BY p.id, r.seq, r.partnumber, r.partdimension, r.firstpiece, 
+             r.machinestatus, r.componentstatus, r.target, r.actual
+    ORDER BY p.id ASC;
   `;
+  
+  
   
 
     const params = [date, ...TIME_SLOTS_ORDER];

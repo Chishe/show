@@ -46,7 +46,7 @@ interface TimeSlotChartProps {
   dateTime: string;
 }
 
-const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
+const TimeSlotChart = ({ nametableurl, dateTime }: TimeSlotChartProps) => {
   const [chartData, setChartData] = useState<ChartState | null>(null);
   const [timeSlotRefs, setTimeSlotRefs] = useState<string[]>([]);
   const [partnumberRefs, setpartnumbeRefs] = useState<string[]>([]);
@@ -66,34 +66,74 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
           nametableurl
         )}&date=${encodeURIComponent(dateTime)}`
       )
-        .then((res) => {
-          if (!res.ok) throw new Error("Network response was not ok");
-          return res.json();
-        })
-        .then((data: ChartData[]) => {
+      .then((res) => {
+        if (!res.ok) throw new Error("Network response was not ok");
+        return res.json();
+      })
+      .then((data: ChartData[]) => {
+          const slotIndexPartMap = new Map<string, Map<string, { target: number, actual: number }>>();
+
+          data.forEach((d) => {
+            const timeSlot = d.timeSlot;
+            const partNumber = d.partNumber;
+            const tArr = d.targetA[0] ?? [];
+            const aArr = d.actualA[0] ?? [];
+
+            for (let idx = 0; idx < 6; idx++) {
+              const t = tArr[idx] ?? 0;
+              const a = aArr[idx] ?? 0;
+              const key = `${timeSlot}_${idx}`;
+
+              if (!slotIndexPartMap.has(key)) {
+                slotIndexPartMap.set(key, new Map());
+              }
+
+              const partMap = slotIndexPartMap.get(key)!;
+              if (!partMap.has(partNumber)) {
+                partMap.set(partNumber, { target: 0, actual: 0 });
+              }
+
+              const val = partMap.get(partNumber)!;
+              val.target += t;
+              val.actual += a;
+            }
+          });
+
           const labels: string[] = [];
           const target: number[] = [];
           const actual: number[] = [];
           const slots: string[] = [];
           const pn: string[] = [];
+
           let counter = 1;
-  
-          data.forEach((d) => {
-            const tArr = d.targetA[0];
-            const aArr = d.actualA[0];
-            tArr.forEach((t, idx) => {
-              const a = aArr[idx];
-              if (t !== null || a !== null) {
-                labels.push(counter.toString());
-                counter++;
-                target.push(t ?? NaN);
-                actual.push(a ?? NaN);
-                slots.push(d.timeSlot);
-                pn.push(d.partNumber);
-              }
+
+          slotIndexPartMap.forEach((partMap, key) => {
+            let sumTarget = 0;
+            let sumActual = 0;
+
+            partMap.forEach(({ target: t, actual: a }) => {
+              sumTarget += t;
+              sumActual += a;
             });
+
+            if (sumTarget === 0) return;
+
+            labels.push(counter.toString());
+            target.push(sumTarget);
+            actual.push(sumActual === 0 ? NaN : sumActual);
+
+            const [timeSlot] = key.split("_");
+            slots.push(timeSlot);
+
+            const underParts = Array.from(partMap.entries())
+              .filter(([, { target, actual }]) => (target > 0 || actual > 0) && actual < target)
+              .map(([part]) => part);
+
+            pn.push(underParts.length > 0 ? underParts.join(", ") : "-");
+
+            counter++;
           });
-  
+
           setTimeSlotRefs(slots);
           setpartnumbeRefs(pn);
           setChartData({
@@ -128,7 +168,8 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
                   font: {
                     weight: 'bold'
                   },
-                  formatter: (value: number | null) => (value != null && !isNaN(value) ? value : ''),
+                  formatter: (value: number | null) =>
+                    value != null && !isNaN(value) ? value : '',
                 },
               },
             ],
@@ -138,13 +179,13 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
           console.error("Error fetching chart data:", error);
         });
     };
-  
+
     fetchChartData();
-  
+
     const interval = setInterval(fetchChartData, 1000);
-  
+
     return () => clearInterval(interval);
-  }, [nametableurl,dateTime]);
+  }, [nametableurl, dateTime]);
 
   const options: ChartOptions<"line"> = {
     responsive: true,
@@ -281,7 +322,7 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
       details: detail,
       action: "",
       pic: "",
-      due:dateTime,
+      due: dateTime,
       status: "Pending",
       effectiveLot: `Lot-${timeSlotRefs[selectedPoint]}`,
     };
@@ -305,7 +346,7 @@ const TimeSlotChart = ({ nametableurl,dateTime }: TimeSlotChartProps) => {
       .catch(() => {
         toast.error("Error inserting record!");
       });
-      
+
 
     setShowPopup(false);
   };

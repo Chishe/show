@@ -1,12 +1,34 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-export default function SafetyStatusCard({ type }) {
+// Define allowed types for `type` prop
+type SafetyType = "hvac" | "brs";
+
+// Define the shape of your safety data
+interface SafetyData {
+    id: number;
+    status: "Normal" | "Warning" | "Critical";
+    current_mp: number;
+    target_mp: number;
+    safety_devices: number;
+    construction: number;
+}
+
+interface Props {
+    type: SafetyType;
+}
+
+export default function SafetyStatusCard({ type }: Props) {
     const [open, setOpen] = useState(false);
-    const [data, setData] = useState(null);
-    const [status, setStatus] = useState("Normal");
+    const [data, setData] = useState<SafetyData | null>(null);
+    const [status, setStatus] = useState<"Normal" | "Warning" | "Critical">("Normal");
 
     const apiEndpoint = type === "hvac" ? "safety-hvac" : "safety-brs";
     const editApiEndpoint = type === "hvac" ? "edit-safety-hvac" : "edit-safety-brs";
@@ -14,10 +36,9 @@ export default function SafetyStatusCard({ type }) {
     useEffect(() => {
         fetch(`/api/${apiEndpoint}`)
             .then((res) => res.json())
-            .then((data) => {
+            .then((data: SafetyData[]) => {
                 setData(data[0]);
                 setStatus(data[0].status);
-                console.log(data[0]);
             })
             .catch((err) => console.error("Error fetching data:", err));
     }, [apiEndpoint]);
@@ -31,14 +52,10 @@ export default function SafetyStatusCard({ type }) {
     }[status];
 
     const handleUpdate = () => {
-        const updatedData = {
+        const updatedData: SafetyData = {
+            ...data,
             status,
-            current_mp: data.current_mp,
-            target_mp: data.target_mp,
-            safety_devices: data.safety_devices,
-            construction: data.construction,
         };
-        console.log(updatedData);
 
         fetch(`/api/${editApiEndpoint}/${data.id}`, {
             method: "PUT",
@@ -48,12 +65,12 @@ export default function SafetyStatusCard({ type }) {
             body: JSON.stringify(updatedData),
         })
             .then((res) => res.json())
-            .then((data) => {
-                if (data.message === 'Safety status updated successfully') {
+            .then((resData) => {
+                if (resData.message === "Safety status updated successfully") {
                     toast.success("Safety status updated successfully!");
                     setOpen(false);
                 } else {
-                    toast.error(data.message || "Failed to update safety status.");
+                    toast.error(resData.message || "Failed to update safety status.");
                 }
             })
             .catch((err) => {
@@ -103,7 +120,12 @@ export default function SafetyStatusCard({ type }) {
                         <input id="name" className="text-white bg-[#212b4d] p-1 rounded-sm px-2" value="Safety" disabled />
 
                         <label htmlFor="status" className="text-white"><span className="text-red-500">*</span> Status</label>
-                        <select id="status" className="bg-white p-1 rounded-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
+                        <select
+                            id="status"
+                            className="bg-white p-1 rounded-sm"
+                            value={status}
+                            onChange={(e) => setStatus(e.target.value as "Normal" | "Warning" | "Critical")}
+                        >
                             <option value="Normal">Normal</option>
                             <option value="Warning">Warning</option>
                             <option value="Critical">Critical</option>
@@ -114,7 +136,7 @@ export default function SafetyStatusCard({ type }) {
                             id="currentMP"
                             className="bg-white p-1 rounded-sm px-2"
                             value={data.current_mp}
-                            onChange={(e) => setData({ ...data, current_mp: e.target.value })}
+                            onChange={(e) => setData({ ...data, current_mp: Number(e.target.value) })}
                         />
 
                         <label htmlFor="targetMP" className="text-white">Target MP Situation</label>
@@ -122,7 +144,7 @@ export default function SafetyStatusCard({ type }) {
                             id="targetMP"
                             className="bg-white p-1 rounded-sm px-2"
                             value={data.target_mp}
-                            onChange={(e) => setData({ ...data, target_mp: e.target.value })}
+                            onChange={(e) => setData({ ...data, target_mp: Number(e.target.value) })}
                         />
 
                         <label htmlFor="safetyDevices" className="text-white">Safety Devices</label>
@@ -130,7 +152,7 @@ export default function SafetyStatusCard({ type }) {
                             id="safetyDevices"
                             className="bg-white p-1 rounded-sm px-2"
                             value={data.safety_devices}
-                            onChange={(e) => setData({ ...data, safety_devices: e.target.value })}
+                            onChange={(e) => setData({ ...data, safety_devices: Number(e.target.value) })}
                         />
 
                         <label htmlFor="construction" className="text-white">Construction</label>
@@ -138,7 +160,7 @@ export default function SafetyStatusCard({ type }) {
                             id="construction"
                             className="bg-white p-1 rounded-sm px-2"
                             value={data.construction}
-                            onChange={(e) => setData({ ...data, construction: e.target.value })}
+                            onChange={(e) => setData({ ...data, construction: Number(e.target.value) })}
                         />
                     </div>
 

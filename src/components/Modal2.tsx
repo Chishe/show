@@ -1,8 +1,9 @@
-import { useState, useEffect,useCallback } from "react";
-
+import { useState, useEffect, useCallback } from "react";
+import { FaFilterCircleXmark } from "react-icons/fa6";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { FaPlus } from "react-icons/fa";
-
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 const columns = [
   {
     key: "partNumber",
@@ -38,40 +39,123 @@ type Row = {
   endTime: string;
   stockPart: string;
   sequence: number;
+  remark?: string;
 };
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const calculateEndTime = (
+
+export const TIME_SLOTS = [
+  "19:35-20:30",
+  "20:30-21:30",
+  "21:40-22:30",
+  "00:30-01:30",
+  "01:30-02:30",
+  "02:40-03:30",
+  "03:30-04:30",
+  "04:50-05:50",
+  "05:50-06:50",
+];
+
+// function parseTime(timeStr: string): Date {
+//   const [h, m] = timeStr.split(":").map(Number);
+//   const d = new Date();
+//   d.setHours(h, m, 0, 0);
+//   return d;
+// }
+
+function formatTime(date: Date): string {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+// function timeToMinutes(t: string): number {
+//   const [h, m] = t.split(":").map(Number);
+//   return h * 60 + m;
+// }
+
+// function roundUpToNext10MinInSlot(timeStr: string, slotEndStr: string): string {
+//   const [h, m] = timeStr.split(":").map(Number);
+//   const totalMin = h * 60 + m;
+//   const roundedMin = Math.ceil(totalMin / 10) * 10;
+//   const roundedH = Math.floor(roundedMin / 60);
+//   const roundedM = roundedMin % 60;
+//   const roundedStr = `${String(roundedH).padStart(2, "0")}:${String(roundedM).padStart(2, "0")}`;
+
+//   return timeToMinutes(roundedStr) > timeToMinutes(slotEndStr)
+//     ? slotEndStr
+//     : roundedStr;
+// }
+function parseTimeWithDay(timeStr: string): Date {
+  const [h, m] = timeStr.split(":").map(Number);
+  const now = new Date();
+  const date = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0);
+
+  // ถ้าเวลาน้อยกว่า 7:00 (เช้า) ให้ขยับเป็นวันถัดไป
+  if (h < 7) {
+    date.setDate(date.getDate() + 1);
+  }
+  return date;
+}
+
+export const calculateEndTime = (
   startTime: string,
   qty: string,
   ctTarget: string
 ): string => {
   if (!startTime || !qty || !ctTarget) return "";
 
-  const [hourStr, minStr] = startTime.split(":");
-  const startDate = new Date();
-  startDate.setHours(parseInt(hourStr));
-  startDate.setMinutes(parseInt(minStr));
-  startDate.setSeconds(0);
+  const qtyNum = parseInt(qty);
+  const ctNum = parseFloat(ctTarget);
 
-  const totalSeconds = parseInt(qty) * parseInt(ctTarget);
-  if (isNaN(totalSeconds)) return "";
+  if (isNaN(qtyNum) || isNaN(ctNum)) return "";
 
-  const endDate = new Date(startDate.getTime() + totalSeconds * 1000);
+  const requiredSeconds = qtyNum * ctNum;
+  const startDate = parseTimeWithDay(startTime);
 
-  endDate.setSeconds(0);
-  const minutes = endDate.getMinutes();
-  const roundedMinutes = Math.ceil(minutes / 10) * 10;
+  let remainingSeconds = requiredSeconds;
+  let currentEndTime: Date | null = null;
 
-  endDate.setMinutes(roundedMinutes);
+  for (const slot of TIME_SLOTS) {
+    const [slotStartStr, slotEndStr] = slot.split("-");
+    const slotStart = parseTimeWithDay(slotStartStr);
+    const slotEnd = parseTimeWithDay(slotEndStr);
 
-  const limitDate = new Date();
-  limitDate.setHours(18, 50, 0, 0);
+    if (slotEnd <= startDate) continue;
 
-  if (endDate > limitDate) return "06:50";
+    const effectiveStart = slotStart < startDate ? startDate : slotStart;
+    const availableSeconds = (slotEnd.getTime() - effectiveStart.getTime()) / 1000;
 
-  const hh = String(endDate.getHours()).padStart(2, "0");
-  const mm = String(endDate.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
+    if (availableSeconds <= 0) continue;
+
+    if (remainingSeconds > availableSeconds) {
+      remainingSeconds -= availableSeconds;
+    } else {
+      currentEndTime = new Date(effectiveStart.getTime() + remainingSeconds * 1000);
+      const rawEnd = formatTime(currentEndTime);
+
+      // กรณีเวลาผ่านเที่ยงคืน อาจต้องแสดงวันถัดไป หรือคำนวณเวลานาทีแบบรวม
+      // สำหรับการเปรียบเทียบ ให้ใช้ timeToMinutes แต่ถ้าเวลาน้อยกว่า 7:00 ให้ + 24*60 เพื่อเป็นวันถัดไป
+      function timeToMinutesWithDay(t: string): number {
+        const [h, m] = t.split(":").map(Number);
+        return h < 7 ? h * 60 + m + 24 * 60 : h * 60 + m;
+      }
+
+      // const slotEndMin = timeToMinutesWithDay(slotEndStr);
+      const rawEndMin = timeToMinutesWithDay(rawEnd);
+
+      // ปรับ rawEnd ให้อยู่ใน slot (เช่น round up 10 นาที)
+      const roundedMin = Math.ceil(rawEndMin / 10) * 10;
+
+      if (roundedMin > timeToMinutesWithDay("06:50")) {
+        return "06:50";
+      }
+
+      const roundedH = Math.floor(roundedMin / 60) % 24;
+      const roundedM = roundedMin % 60;
+      const roundedStr = `${String(roundedH).padStart(2, "0")}:${String(roundedM).padStart(2, "0")}`;
+
+      return roundedStr;
+    }
+  }
+
+  return "06:50";
 };
 
 type ModalProps = {
@@ -92,6 +176,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       endTime: "",
       stockPart: "",
       sequence: 1,
+      remark: "",
     },
   ]);
 
@@ -106,12 +191,48 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
     return data;
   }, [nametableurl, dateTime]);
   
+  function updateAllRows(rows: Row[]): Row[] {
+    if (rows.length === 0) return rows;
+
+    const updatedRows = [...rows];
+
+    if (updatedRows[0].startTime && updatedRows[0].qty && updatedRows[0].ctTarget) {
+      updatedRows[0].endTime = calculateEndTime(
+        updatedRows[0].startTime,
+        updatedRows[0].qty,
+        updatedRows[0].ctTarget
+      );
+    } else {
+      updatedRows[0].endTime = "";
+    }
+
+    for (let i = 1; i < updatedRows.length; i++) {
+      const prevRow = updatedRows[i - 1];
+      const row = { ...updatedRows[i] };
+
+      row.startTime = prevRow.endTime || "";
+
+      if (row.startTime && row.qty && row.ctTarget) {
+        row.endTime = calculateEndTime(row.startTime, row.qty, row.ctTarget);
+      } else {
+        row.endTime = "";
+      }
+
+      updatedRows[i] = row;
+    }
+    return updatedRows;
+  }
+
   useEffect(() => {
     if (isOpen) {
-      loadPlanData().then(setRows).catch(console.error);
+      loadPlanData()
+        .then((data) => {
+          const updatedRows = updateAllRows(data);
+          setRows(updatedRows);
+        })
+        .catch(console.error);
     }
   }, [isOpen, loadPlanData]);
-
 
   const handleSubmit = async () => {
     const hasInvalidRow = rows.some((row) => {
@@ -124,12 +245,12 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
         !row.endTime
       );
     });
-  
+
     if (hasInvalidRow) {
       alert("กรุณากรอกข้อมูลให้ครบทุกแถวก่อน Submit");
       return;
     }
-  
+
     const payload = rows.map((row, index) => ({
       partnumber: row.partNumber,
       model: row.model,
@@ -139,7 +260,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       endtime: row.endTime,
       sequence: index + 1,
     }));
-  
+
     try {
       const res = await fetch(
         `/api/insert-plan-1?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`,
@@ -150,7 +271,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
         }
       );
       if (!res.ok) throw new Error("Submit failed");
-  
+
       const updated = await loadPlanData();
       setRows(updated);
       setIsOpen(false);
@@ -163,142 +284,72 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
     }
   };
 
-  const timeSlots = [
-    ["19:35", "20:30"],
-    ["20:30", "21:30"],
-    ["21:40", "22:30"],
-    ["00:30", "01:30"],
-    ["01:30", "02:30"],
-    ["02:40", "03:30"],
-    ["03:30", "04:30"],
-    ["04:50", "05:50"],
-    ["05:50", "06:50"],
-  ];
-  
+
   const updateRow = (id: number, key: keyof Row, value: string) =>
     setRows((rows) => {
       const updatedRows = [...rows];
       const index = updatedRows.findIndex((r) => r.id === id);
-  
-      if (index === -1) return rows;
-  
-      const updated = { ...updatedRows[index], [key]: value };
-  
-      if (
-        updated.startTime &&
-        updated.qty &&
-        updated.ctTarget
-      ) {
-        const [startH, startM] = updated.startTime.split(":").map(Number);
-        const startDate = new Date();
-        startDate.setHours(startH, startM, 0, 0);
-  
-        const ct = parseInt(updated.ctTarget);
-        const qty = parseInt(updated.qty);
 
-        const durationSeconds = qty * ct;
-        const endDate = new Date(startDate.getTime() + durationSeconds * 1000);
-  
-        const matchedSlot = timeSlots.find(([slotStart, slotEnd]) => {
-          const [slotStartH, slotStartM] = slotStart.split(":").map(Number);
-          const [slotEndH, slotEndM] = slotEnd.split(":").map(Number);
-  
-          const slotStartDate = new Date(startDate);
-          const slotEndDate = new Date(startDate);
-  
-          if (slotStartH < 12 && startH >= 12) {
-            slotStartDate.setDate(slotStartDate.getDate() + 1);
-            slotEndDate.setDate(slotEndDate.getDate() + 1);
-          }
-  
-          slotStartDate.setHours(slotStartH, slotStartM, 0, 0);
-          slotEndDate.setHours(slotEndH, slotEndM, 0, 0);
-  
-          return startDate >= slotStartDate && startDate < slotEndDate;
-        });
-  
-        if (matchedSlot) {
-          const [, slotEnd] = matchedSlot;
-          const [limitH, limitM] = slotEnd.split(":").map(Number);
-          const limitDate = new Date(startDate);
-          if (limitH < 12 && startH >= 12) {
-            limitDate.setDate(limitDate.getDate() + 1);
-          }
-          limitDate.setHours(limitH, limitM, 0, 0);
-  
-          if (endDate > limitDate) {
-            updated.endTime = slotEnd;
-          } else {
-            updated.endTime = `${endDate.getHours().toString().padStart(2, "0")}:${endDate.getMinutes().toString().padStart(2, "0")}`;
-          }
-        } else {
-          updated.endTime = `${endDate.getHours().toString().padStart(2, "0")}:${endDate.getMinutes().toString().padStart(2, "0")}`;
-        }
-      } else {
-        updated.endTime = "";
-      }
-  
-      updatedRows[index] = updated;
-  
-      if (index + 1 < updatedRows.length) {
-        const nextRow = { ...updatedRows[index + 1] };
-        nextRow.startTime = updated.endTime;
-  
-        if (nextRow.startTime && nextRow.qty && nextRow.ctTarget) {
-          const [startH, startM] = nextRow.startTime.split(":").map(Number);
+      if (index === -1) return rows;
+
+      const row = { ...updatedRows[index], [key]: value };
+
+      if (
+        ["startTime", "qty", "ctTarget"].includes(key) &&
+        row.startTime &&
+        row.qty &&
+        row.ctTarget
+      ) {
+        const calculatedEnd = calculateEndTime(
+          row.startTime,
+          row.qty,
+          row.ctTarget
+        );
+
+        if (calculatedEnd === "06:50") {
+          const [startH, startM] = row.startTime.split(":").map(Number);
           const startDate = new Date();
           startDate.setHours(startH, startM, 0, 0);
-  
-          const ct = parseInt(nextRow.ctTarget);
-          const qty = parseInt(nextRow.qty);
-          const endDate = new Date(startDate.getTime() + qty * ct * 1000);
-  
-          const matchedSlot = timeSlots.find(([slotStart, slotEnd]) => {
-            const [slotStartH, slotStartM] = slotStart.split(":").map(Number);
-            const [slotEndH, slotEndM] = slotEnd.split(":").map(Number);
-  
-            const slotStartDate = new Date(startDate);
-            const slotEndDate = new Date(startDate);
-  
-            if (slotStartH < 12 && startH >= 12) {
-              slotStartDate.setDate(slotStartDate.getDate() + 1);
-              slotEndDate.setDate(slotEndDate.getDate() + 1);
-            }
-  
-            slotStartDate.setHours(slotStartH, slotStartM, 0, 0);
-            slotEndDate.setHours(slotEndH, slotEndM, 0, 0);
-  
-            return startDate >= slotStartDate && startDate < slotEndDate;
-          });
-  
-          if (matchedSlot) {
-            const [, slotEnd] = matchedSlot;
-            const [limitH, limitM] = slotEnd.split(":").map(Number);
-            const limitDate = new Date(startDate);
-            if (limitH < 12 && startH >= 12) {
-              limitDate.setDate(limitDate.getDate() + 1);
-            }
-            limitDate.setHours(limitH, limitM, 0, 0);
-  
-            if (endDate > limitDate) {
-              nextRow.endTime = slotEnd;
-            } else {
-              nextRow.endTime = `${endDate.getHours().toString().padStart(2, "0")}:${endDate.getMinutes().toString().padStart(2, "0")}`;
-            }
-          } else {
-            nextRow.endTime = `${endDate.getHours().toString().padStart(2, "0")}:${endDate.getMinutes().toString().padStart(2, "0")}`;
-          }
+
+          const limitDate = new Date();
+          limitDate.setHours(18, 50, 0, 0);
+
+          const availableSeconds =
+            (limitDate.getTime() - startDate.getTime()) / 1000;
+
+          const ct = parseInt(row.ctTarget);
+          const maxQty = Math.floor(availableSeconds / ct);
+
+          row.qty = maxQty.toString();
+          row.endTime = "06:50";
         } else {
-          nextRow.endTime = "";
+          row.endTime = calculatedEnd;
         }
-  
-        updatedRows[index + 1] = nextRow;
+        if (index + 1 < updatedRows.length) {
+          const nextRow = { ...updatedRows[index + 1] };
+          nextRow.startTime = row.endTime;
+
+          if (
+            nextRow.qty &&
+            nextRow.ctTarget &&
+            nextRow.startTime
+          ) {
+            nextRow.endTime = calculateEndTime(
+              nextRow.startTime,
+              nextRow.qty,
+              nextRow.ctTarget
+            );
+          } else {
+            nextRow.endTime = "";
+          }
+
+          updatedRows[index + 1] = nextRow;
+        }
       }
-  
-      return updatedRows;
+
+      updatedRows[index] = row;
+      return recalculateRowsFromIndex(updatedRows, index + 1);
     });
-  
-  
 
   const addRow = () =>
     setRows((rows) => {
@@ -323,20 +374,15 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       
       const [newStartHour, newStartMin] = newStartTime.split(":").map(Number);
       
+      // สร้างวันที่ใหม่สำหรับ newStartDate
       const now = new Date();
-    
-      const newStartDate = new Date(now);
-      newStartDate.setHours(newStartHour, newStartMin, 0, 0);
+      const newStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), newStartHour, newStartMin, 0, 0);
       
-      const endLimit = new Date(newStartDate);
-      if (newStartHour < 7) {
-      } else {
-        endLimit.setDate(endLimit.getDate() + 1);
-      }
-      endLimit.setHours(6, 50, 0, 0);
+      // สร้าง endLimit เป็น 06:50 ของวันถัดไป
+      const endLimit = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 6, 50, 0, 0);
       
       if (newStartDate >= endLimit) {
-        alert("Cannot add more rows. End time limit reached (06:50).");
+        alert("Cannot add more rows. End time limit reached (06:50 next day).");
         return rows;
       }
       
@@ -357,6 +403,22 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       ];
     });
 
+  const recalculateRowsFromIndex = (updated: Row[], startIdx: number) => {
+    for (let i = startIdx; i < updated.length; i++) {
+      const prevRow = i === 0 ? null : updated[i - 1];
+      const current = { ...updated[i] };
+
+      if (prevRow) current.startTime = prevRow.endTime;
+      if (current.startTime && current.qty && current.ctTarget) {
+        current.endTime = calculateEndTime(current.startTime, current.qty, current.ctTarget);
+      } else {
+        current.endTime = "";
+      }
+
+      updated[i] = current;
+    }
+    return updated;
+  };
   const deleteRow = async (id: number) => {
     try {
       const res = await fetch(`/api/plan/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
@@ -365,18 +427,70 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
 
       if (!res.ok) {
         const data = await res.json();
-        console.error("Delete failed:", data.message);
-        alert("Delete failed: " + data.message);
+        toast.error("Delete failed: " + data.message);
         return;
       }
 
-      console.log("Deleted successfully");
-      setRows((rows) => rows.filter((r) => r.id !== id));
+      setRows((prevRows) => {
+        const indexToDelete = prevRows.findIndex((row) => row.id === id);
+        const updatedRows = prevRows.filter((r) => r.id !== id);
+        toast.success("Deleted successfully");
+        return recalculateRowsFromIndex(updatedRows, indexToDelete);
+      });
     } catch (error) {
-      console.error("Delete error:", error);
-      alert("Delete error: " + (error as Error).message);
+      toast.error("Delete error: " + (error as Error).message);
     }
   };
+
+  const remarkeRow = async (id: number) => {
+    try {
+      // เรียก API PUT ครั้งแรก
+      const res1 = await fetch(`/api/plan-remark/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ remark: "remark" }),
+      });
+
+      if (!res1.ok) {
+        const data = await res1.json();
+        toast.error("Update remark failed: " + (data.message || "Unknown error"));
+        return;
+      }
+
+      // เรียก API PUT ครั้งที่สอง (ตัวอย่าง URL อาจเปลี่ยนตาม API จริง)
+      const res2 = await fetch(`/api/edit-plan-target/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ /* data ที่ต้องส่ง */ }),
+      });
+
+      if (!res2.ok) {
+        const data = await res2.json();
+        toast.error("Update target failed: " + (data.message || "Unknown error"));
+        return;
+      }
+
+      // ถ้าเรียกสำเร็จทั้ง 2 ครั้ง อัปเดต state
+      setRows((prevRows) =>
+        prevRows.map(row =>
+          row.id === id ? { ...row, remark: "remark" } : row
+        )
+      );
+      const data = await loadPlanData();
+      const updatedRows = updateAllRows(data);
+      setRows(updatedRows);
+  
+      toast.success("Updated remark and target successfully");
+    } catch (error) {
+      toast.error("Update error: " + (error as Error).message);
+    }
+  };
+
+
 
   return (
     <div className="w-full bg-[#465e86] p-4">
@@ -414,7 +528,10 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
                       </th>
                     ))}
                     <th className="p-2 border rounded-tr-lg whitespace-nowrap">
-                      Action
+                      Remark
+                    </th>
+                    <th className="p-2 border rounded-tr-lg whitespace-nowrap">
+                      Delete
                     </th>
                   </tr>
                 </thead>
@@ -463,11 +580,19 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
                           )}
                         </td>
                       ))}
+                      <td className="p-2">
+                        <button
+                          onClick={() => remarkeRow(row.id)}
+                          className="text-amber-500 hover:text-amber-800 text-2xl"
+                        >
+                          <FaFilterCircleXmark />
+                        </button>
+                      </td>
 
                       <td className="p-2">
                         <button
                           onClick={() => deleteRow(row.id)}
-                          className="text-red-600 hover:text-red-800"
+                          className="text-red-600 hover:text-red-800 text-2xl"
                         >
                           <RiDeleteBin6Line />
                         </button>

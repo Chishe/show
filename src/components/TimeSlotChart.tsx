@@ -72,27 +72,83 @@ const TimeSlotChart = ({ nametableurl, dateTime }: TimeSlotChartProps) => {
           return res.json();
         })
         .then((data: ChartData[]) => {
+          const slotIndexPartMap = new Map<string, Map<string, { target: number, actual: number }>>();
+
+          data.forEach((d, dataIndex) => {
+            const timeSlot = d.timeSlot;
+            const partNumber = d.partNumber;
+            const tArr = d.targetA[0] ?? [];
+            const aArr = d.actualA[0] ?? [];
+          
+            console.log(`\n== Record ${dataIndex + 1} ==`);
+            console.log("timeSlot:", timeSlot);
+            console.log("partNumber:", partNumber);
+            console.log("targetA:", tArr);
+            console.log("actualA:", aArr);
+          
+            for (let idx = 0; idx < 6; idx++) {
+              const t = tArr[idx] ?? 0;
+              const a = aArr[idx] ?? 0;
+              const key = `${timeSlot}_${idx}`;
+          
+              console.log(`  Slot ${idx} | Key: ${key} | t: ${t}, a: ${a}`);
+          
+              if (!slotIndexPartMap.has(key)) {
+                console.log(`    ➕ Create new key: ${key}`);
+                slotIndexPartMap.set(key, new Map());
+              }
+          
+              const partMap = slotIndexPartMap.get(key)!;
+          
+              if (!partMap.has(partNumber)) {
+                console.log(`    ➕ Add part: ${partNumber} to key: ${key}`);
+                partMap.set(partNumber, { target: 0, actual: 0 });
+              }
+          
+              const val = partMap.get(partNumber)!;
+              val.target += t;
+              val.actual += a;
+          
+              console.log(
+                `  Updated ${partNumber} in ${key} => target: ${val.target}, actual: ${val.actual}`
+              );
+            }
+          });
+          
+
           const labels: string[] = [];
           const target: number[] = [];
           const actual: number[] = [];
           const slots: string[] = [];
           const pn: string[] = [];
+
           let counter = 1;
 
-          data.forEach((d) => {
-            const tArr = d.targetA[0];
-            const aArr = d.actualA[0];
-            tArr.forEach((t, idx) => {
-              const a = aArr[idx];
-              if (t !== null || a !== null) {
-                labels.push(counter.toString());
-                counter++;
-                target.push(t ?? NaN);
-                actual.push(a ?? NaN);
-                slots.push(d.timeSlot);
-                pn.push(d.partNumber);
-              }
+          slotIndexPartMap.forEach((partMap, key) => {
+            let sumTarget = 0;
+            let sumActual = 0;
+
+            partMap.forEach(({ target: t, actual: a }) => {
+              sumTarget += t;
+              sumActual += a;
             });
+
+            if (sumTarget === 0) return;
+
+            labels.push(counter.toString());
+            target.push(sumTarget);
+            actual.push(sumActual === 0 ? NaN : sumActual);
+
+            const [timeSlot] = key.split("_");
+            slots.push(timeSlot);
+
+            const underParts = Array.from(partMap.entries())
+              .filter(([, { target, actual }]) => (target > 0 || actual > 0) && actual < target)
+              .map(([part]) => part);
+
+            pn.push(underParts.length > 0 ? underParts.join(", ") : "-");
+
+            counter++;
           });
 
           setTimeSlotRefs(slots);
@@ -129,7 +185,8 @@ const TimeSlotChart = ({ nametableurl, dateTime }: TimeSlotChartProps) => {
                   font: {
                     weight: 'bold'
                   },
-                  formatter: (value: number | null) => (value != null && !isNaN(value) ? value : ''),
+                  formatter: (value: number | null) =>
+                    value != null && !isNaN(value) ? value : '',
                 },
               },
             ],
@@ -138,6 +195,7 @@ const TimeSlotChart = ({ nametableurl, dateTime }: TimeSlotChartProps) => {
         .catch((error) => {
           console.error("Error fetching chart data:", error);
         });
+
     };
 
     fetchChartData();

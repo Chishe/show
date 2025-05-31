@@ -13,7 +13,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { FaFileUpload, FaEdit } from "react-icons/fa";
 import { MdDeleteForever } from "react-icons/md";
 
-interface TableComponentProps {
+interface KadaiListProps {
   title: string;
   station: number | string;
   apiUrl: string;
@@ -33,7 +33,7 @@ interface DataItem {
   [key: string]: string | number | undefined;
 }
 
-const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
+const KadaiList = ({ title, station, apiUrl}: KadaiListProps) => {
   const [data, setData] = useState<KadaiItem[]>([]);
   const [item, setItem] = useState("");
   const [due, setDue] = useState("");
@@ -300,4 +300,4 @@ const TableComponent = ({ title, station, apiUrl }: TableComponentProps) => {
   );
 };
 
-export default TableComponent;
+export default KadaiList;

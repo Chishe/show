@@ -1,12 +1,33 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-export default function QualityStatusCard({ type }) {
+type QualityType = "hvac" | "brs";
+
+interface QualityData {
+    id: number;
+    status: "Normal" | "Warning" | "Critical";
+    inline_defect: number;
+    current_mp_skill: number;
+    target_mp_skill: number;
+    current_ll_patrol: number;
+    target_ll_patrol: number;
+}
+
+interface Props {
+    type: QualityType;
+}
+
+export default function QualityStatusCard({ type }: Props) {
     const [open, setOpen] = useState(false);
-    const [data, setData] = useState(null);
-    const [status, setStatus] = useState("Normal");
+    const [data, setData] = useState<QualityData | null>(null);
+    const [status, setStatus] = useState<QualityData["status"]>("Normal");
 
     const apiEndpoint = type === "hvac" ? "quality-hvac" : "quality-brs";
     const editApiEndpoint = type === "hvac" ? "edit-quality-hvac" : "edit-quality-brs";
@@ -14,7 +35,7 @@ export default function QualityStatusCard({ type }) {
     useEffect(() => {
         fetch(`/api/${apiEndpoint}`)
             .then((res) => res.json())
-            .then((data) => {
+            .then((data: QualityData[]) => {
                 setData(data[0]);
                 setStatus(data[0].status);
                 console.log(data[0]);
@@ -31,15 +52,15 @@ export default function QualityStatusCard({ type }) {
     }[status];
 
     const handleUpdate = () => {
-        const updatedData = {
+        const updatedData: QualityData = {
+            ...data,
             status,
-            inline_defect: data.inline_defect,
-            current_mp_skill: data.current_mp_skill,
-            target_mp_skill: data.target_mp_skill,
-            current_ll_patrol: data.current_ll_patrol,
-            target_ll_patrol: data.target_ll_patrol,
+            inline_defect: Number(data.inline_defect),
+            current_mp_skill: Number(data.current_mp_skill),
+            target_mp_skill: Number(data.target_mp_skill),
+            current_ll_patrol: Number(data.current_ll_patrol),
+            target_ll_patrol: Number(data.target_ll_patrol),
         };
-        console.log(updatedData);
 
         fetch(`/api/${editApiEndpoint}/${data.id}`, {
             method: "PUT",
@@ -50,7 +71,7 @@ export default function QualityStatusCard({ type }) {
         })
             .then((res) => res.json())
             .then((data) => {
-                if (data.message === 'Safety status updated successfully') {
+                if (data.message === "Safety status updated successfully") {
                     toast.success("Safety status updated successfully!");
                     setOpen(false);
                 } else {
@@ -104,7 +125,7 @@ export default function QualityStatusCard({ type }) {
                         <input id="name" className="text-white bg-[#212b4d] p-1 rounded-sm px-2" value="Safety" disabled />
 
                         <label htmlFor="status" className="text-white"><span className="text-red-500">*</span> Status</label>
-                        <select id="status" className="bg-white p-1 rounded-sm" value={status} onChange={(e) => setStatus(e.target.value)}>
+                        <select id="status" className="bg-white p-1 rounded-sm" value={status} onChange={(e) => setStatus(e.target.value as QualityData["status"])}>
                             <option value="Normal">Normal</option>
                             <option value="Warning">Warning</option>
                             <option value="Critical">Critical</option>
@@ -114,39 +135,44 @@ export default function QualityStatusCard({ type }) {
                         <input
                             id="InlineDefect"
                             className="bg-white p-1 rounded-sm px-2"
+                            type="number"
                             value={data.inline_defect}
-                            onChange={(e) => setData({ ...data, inline_defect: e.target.value })}
+                            onChange={(e) => setData({ ...data, inline_defect: Number(e.target.value) })}
                         />
 
                         <label htmlFor="CurrentMPSkill" className="text-white">Current MP Skill</label>
                         <input
                             id="CurrentMPSkill"
                             className="bg-white p-1 rounded-sm px-2"
+                            type="number"
                             value={data.current_mp_skill}
-                            onChange={(e) => setData({ ...data, current_mp_skill: e.target.value })}
+                            onChange={(e) => setData({ ...data, current_mp_skill: Number(e.target.value) })}
                         />
 
                         <label htmlFor="TargetMPSkill" className="text-white">Target MP Skill</label>
                         <input
                             id="TargetMPSkill"
                             className="bg-white p-1 rounded-sm px-2"
+                            type="number"
                             value={data.target_mp_skill}
-                            onChange={(e) => setData({ ...data, target_mp_skill: e.target.value })}
+                            onChange={(e) => setData({ ...data, target_mp_skill: Number(e.target.value) })}
                         />
 
                         <label htmlFor="CurrentLLPatrol" className="text-white">Current LL Patrol</label>
                         <input
                             id="CurrentLLPatrol"
                             className="bg-white p-1 rounded-sm px-2"
+                            type="number"
                             value={data.current_ll_patrol}
-                            onChange={(e) => setData({ ...data, current_ll_patrol: e.target.value })}
+                            onChange={(e) => setData({ ...data, current_ll_patrol: Number(e.target.value) })}
                         />
                         <label htmlFor="TargetLLPatrol" className="text-white">Target LL Patrol</label>
                         <input
                             id="TargetLLPatrol"
                             className="bg-white p-1 rounded-sm px-2"
+                            type="number"
                             value={data.target_ll_patrol}
-                            onChange={(e) => setData({ ...data, target_ll_patrol: e.target.value })}
+                            onChange={(e) => setData({ ...data, target_ll_patrol: Number(e.target.value) })}
                         />
                     </div>
 
