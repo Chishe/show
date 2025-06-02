@@ -1,3 +1,4 @@
+// กำหนดช่วงเวลาของแต่ละ time slot สำหรับกะกลางคืน (Night shift)
 export const TIME_SLOTS: string[] = [
   '19:35-20:30',
   '20:30-21:30',
@@ -12,6 +13,7 @@ export const TIME_SLOTS: string[] = [
   '05:50-06:50'
 ];
 
+// แปลงเวลาจากรูปแบบ "HH:MM" เป็นนาที
 function toMinutes(timeStr: string): number {
   if (!timeStr || !timeStr.includes(":")) {
     throw new Error(`Invalid time string: ${timeStr}`);
@@ -20,12 +22,14 @@ function toMinutes(timeStr: string): number {
   return h * 60 + m;
 }
 
+// แปลงจากนาทีเป็นเวลา "HH:MM"
 function toTimeStr(minutes: number): string {
   const h = String(Math.floor(minutes / 60)).padStart(2, "0");
   const m = String(minutes % 60).padStart(2, "0");
   return `${h}:${m}`;
 }
 
+// แบ่งช่วงเวลา (เช่น 19:35-20:30) ออกเป็นช่วงย่อยๆ (เช่นทุก 10 นาที)
 function splitTimeSlot(slot: string, interval = 10, baseStartMin = 0): string[] {
   const [start, end] = slot.split("-");
   let startMin = toMinutes(start);
@@ -45,7 +49,7 @@ function splitTimeSlot(slot: string, interval = 10, baseStartMin = 0): string[] 
   return result;
 }
 
-
+// คำนวณนาทีที่ช่วงเวลาย่อย overlap กับช่วงเวลาของแผน
 function getOverlapMinutes(
   slotStart: number,
   slotEnd: number,
@@ -60,6 +64,7 @@ function getOverlapMinutes(
   return Math.max(0, end - start);
 }
 
+// แปลง starttime และ endtime ให้อยู่ในรูปแบบตัวเลข (นาที) และรองรับข้ามวัน
 function normalizeTimeRange(starttime: string, endtime: string): [number, number] {
   const startMin = toMinutes(starttime);
   let endMin = toMinutes(endtime);
@@ -70,6 +75,7 @@ function normalizeTimeRange(starttime: string, endtime: string): [number, number
   return [startMin, endMin];
 }
 
+// กระจายจำนวนผลิตภัณฑ์ (qty) ตาม CT ที่ระบุลงในช่วงเวลา 10 นาที
 function distributeQtyByQtyAndCT(
   timeSlots: readonly string[],
   starttime: string,
@@ -89,6 +95,7 @@ function distributeQtyByQtyAndCT(
 
   const subSlotTimes: { slotIndex: number; subIndex: number; overlapSeconds: number }[] = [];
 
+  // คำนวณ overlap ของแต่ละ sub-slot
   timeSlots.forEach((slot, slotIndex) => {
     const subSlots = splitTimeSlot(slot, 10, rangeStart);
     subSlots.forEach((subSlotStr, subIndex) => {
@@ -108,9 +115,11 @@ function distributeQtyByQtyAndCT(
     });
   });
 
+  // คำนวณจำนวนสูงสุดที่สามารถผลิตได้ในช่วงเวลานี้
   const maxQty = Math.min(qty, Math.floor(totalRangeSeconds / cttarget));
   const totalOverlapSeconds = subSlotTimes.reduce((acc, cur) => acc + cur.overlapSeconds, 0);
 
+  // กระจายตามสัดส่วนเวลา
   const rawAllocations = subSlotTimes.map(({ overlapSeconds }) =>
     overlapSeconds * maxQty / totalOverlapSeconds
   );
@@ -119,6 +128,7 @@ function distributeQtyByQtyAndCT(
   let allocatedQty = flooredAllocations.reduce((a, b) => a + b, 0);
   const remainders = rawAllocations.map((val, idx) => ({ idx, remainder: val - flooredAllocations[idx] }));
 
+  // แจกจ่ายเศษให้ครบ maxQty
   remainders.sort((a, b) => b.remainder - a.remainder);
   let i = 0;
   while (allocatedQty < maxQty && i < remainders.length) {
@@ -127,11 +137,13 @@ function distributeQtyByQtyAndCT(
     i++;
   }
 
+  // สร้างโครงสร้างผลลัพธ์แบบ 2 มิติ
   const result: (number | null)[][] = timeSlots.map((slot) => {
     const subSlots = splitTimeSlot(slot, 10, rangeStart);
     return subSlots.map(() => null);
   });
 
+  // ใส่ค่าที่จัดสรรแล้วลงในช่องที่ตรงกัน
   for (let i = 0; i < subSlotTimes.length; i++) {
     const { slotIndex, subIndex } = subSlotTimes[i];
     result[slotIndex][subIndex] = flooredAllocations[i];
@@ -154,6 +166,7 @@ type GroupedDistribution = {
   };
 };
 
+// รวม input ที่เป็น partnumber, start-end time, และ CT เดียวกัน
 export function mergeInputsByPartnumber(inputs: Input[]): Input[] {
   const map = new Map<string, Input>();
 
@@ -170,6 +183,7 @@ export function mergeInputsByPartnumber(inputs: Input[]): Input[] {
   return Array.from(map.values());
 }
 
+// กระจายข้อมูล input ทั้งหมดเป็นราย partnumber และ time slot
 export function distributeByPartnumbers(inputs: Input[]): GroupedDistribution {
   console.log("distributeByPartnumbers inputs:", inputs);
   const grouped: GroupedDistribution = {};
@@ -206,6 +220,7 @@ export function distributeByPartnumbers(inputs: Input[]): GroupedDistribution {
     }
   }
 
+  // ปัดค่าทั้งหมดให้เป็นจำนวนเต็ม
   for (const partnumber in grouped) {
     for (const slot of TIME_SLOTS) {
       grouped[partnumber][slot] = grouped[partnumber][slot].map((v) =>
