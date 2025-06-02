@@ -3,7 +3,7 @@ export const TIME_SLOTS: string[] = [
   '20:30-21:30',
   '21:40-22:30',
   '22:30-23:30',
-  '23:30-00:30',  // เพิ่มบรรทัดนี้
+  '23:30-00:30', 
   '00:30-01:30',
   '01:30-02:30',
   '02:40-03:30',
@@ -11,8 +11,6 @@ export const TIME_SLOTS: string[] = [
   '04:50-05:50',
   '05:50-06:50'
 ];
-
-
 
 function toMinutes(timeStr: string): number {
   if (!timeStr || !timeStr.includes(":")) {
@@ -29,12 +27,10 @@ function toTimeStr(minutes: number): string {
 }
 
 function splitTimeSlot(slot: string, interval = 10, baseStartMin = 0): string[] {
-  // baseStartMin คือเวลาตั้งต้นของช่วงที่ต้องการแจกงาน เช่น starttime converted to minutes
   const [start, end] = slot.split("-");
   let startMin = toMinutes(start);
   let endMin = toMinutes(end);
 
-  // ถ้าเวลาช่องย่อยอยู่ก่อน baseStartMin ให้บวก 24 ชม. เพื่อให้ต่อเนื่อง
   if (startMin < baseStartMin) startMin += 24 * 60;
   if (endMin <= startMin) endMin += 24 * 60;
 
@@ -43,11 +39,12 @@ function splitTimeSlot(slot: string, interval = 10, baseStartMin = 0): string[] 
 
   while (currentStart < endMin) {
     const nextMin = Math.min(currentStart + interval, endMin);
-    result.push(`${toTimeStr(currentStart)}-${toTimeStr(nextMin)}`);
+    result.push(`${toTimeStr(currentStart % (24 * 60))}-${toTimeStr(nextMin % (24 * 60))}`);
     currentStart = nextMin;
   }
   return result;
 }
+
 
 function getOverlapMinutes(
   slotStart: number,
@@ -55,6 +52,9 @@ function getOverlapMinutes(
   rangeStart: number,
   rangeEnd: number
 ): number {
+  if (slotEnd <= slotStart) slotEnd += 24 * 60;
+  if (rangeEnd <= rangeStart) rangeEnd += 24 * 60;
+  
   const start = Math.max(slotStart, rangeStart);
   const end = Math.min(slotEnd, rangeEnd);
   return Math.max(0, end - start);
@@ -65,7 +65,6 @@ function normalizeTimeRange(starttime: string, endtime: string): [number, number
   let endMin = toMinutes(endtime);
 
   if (endMin <= startMin) {
-    // ถ้าเวลาสิ้นสุดน้อยกว่าหรือเท่ากับเวลาเริ่มต้น ให้บวก 24 ชั่วโมง (1440 นาที)
     endMin += 24 * 60;
   }
   return [startMin, endMin];
@@ -97,10 +96,10 @@ function distributeQtyByQtyAndCT(
       let subStart = toMinutes(subStartStr);
       let subEnd = toMinutes(subEndStr);
 
-      // แปลงเวลาช่องย่อยถ้าอยู่ก่อน rangeStart ให้อยู่ในช่วงเวลาต่อเนื่อง
       if (subStart < rangeStart) subStart += 24 * 60;
+      if (subEnd < rangeStart) subEnd += 24 * 60;
       if (subEnd <= subStart) subEnd += 24 * 60;
-
+      
       const overlapMinutes = getOverlapMinutes(subStart, subEnd, rangeStart, rangeEnd);
       const overlapSeconds = overlapMinutes * 60;
       if (overlapSeconds > 0) {
@@ -120,7 +119,6 @@ function distributeQtyByQtyAndCT(
   let allocatedQty = flooredAllocations.reduce((a, b) => a + b, 0);
   const remainders = rawAllocations.map((val, idx) => ({ idx, remainder: val - flooredAllocations[idx] }));
 
-  // แจกที่เหลือให้ครบ qty โดยดูจาก remainder มากไปหาน้อย
   remainders.sort((a, b) => b.remainder - a.remainder);
   let i = 0;
   while (allocatedQty < maxQty && i < remainders.length) {
@@ -141,8 +139,6 @@ function distributeQtyByQtyAndCT(
 
   return result;
 }
-
-
 
 type Input = {
   partnumber: string;

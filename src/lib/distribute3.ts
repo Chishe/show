@@ -1,4 +1,3 @@
-// ✅ กำหนดช่วงเวลา Time Slots
 export const TIME_SLOTS: string[] = [
   "07:35-08:30",
   "08:30-09:30",
@@ -14,7 +13,7 @@ export const TIME_SLOTS: string[] = [
   '20:30-21:30',
   '21:40-22:30',
   '22:30-23:30',
-  '23:30-00:30',
+  '23:30-00:30', 
   '00:30-01:30',
   '01:30-02:30',
   '02:40-03:30',
@@ -22,8 +21,6 @@ export const TIME_SLOTS: string[] = [
   '04:50-05:50',
   '05:50-06:50'
 ];
-
-
 
 function toMinutes(timeStr: string): number {
   if (!timeStr || !timeStr.includes(":")) {
@@ -52,11 +49,12 @@ function splitTimeSlot(slot: string, interval = 10, baseStartMin = 0): string[] 
 
   while (currentStart < endMin) {
     const nextMin = Math.min(currentStart + interval, endMin);
-    result.push(`${toTimeStr(currentStart)}-${toTimeStr(nextMin)}`);
+    result.push(`${toTimeStr(currentStart % (24 * 60))}-${toTimeStr(nextMin % (24 * 60))}`);
     currentStart = nextMin;
   }
   return result;
 }
+
 
 function getOverlapMinutes(
   slotStart: number,
@@ -64,6 +62,9 @@ function getOverlapMinutes(
   rangeStart: number,
   rangeEnd: number
 ): number {
+  if (slotEnd <= slotStart) slotEnd += 24 * 60;
+  if (rangeEnd <= rangeStart) rangeEnd += 24 * 60;
+  
   const start = Math.max(slotStart, rangeStart);
   const end = Math.min(slotEnd, rangeEnd);
   return Math.max(0, end - start);
@@ -106,8 +107,9 @@ function distributeQtyByQtyAndCT(
       let subEnd = toMinutes(subEndStr);
 
       if (subStart < rangeStart) subStart += 24 * 60;
+      if (subEnd < rangeStart) subEnd += 24 * 60;
       if (subEnd <= subStart) subEnd += 24 * 60;
-
+      
       const overlapMinutes = getOverlapMinutes(subStart, subEnd, rangeStart, rangeEnd);
       const overlapSeconds = overlapMinutes * 60;
       if (overlapSeconds > 0) {
@@ -147,8 +149,6 @@ function distributeQtyByQtyAndCT(
 
   return result;
 }
-
-
 
 type Input = {
   partnumber: string;
