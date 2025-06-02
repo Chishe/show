@@ -21,15 +21,17 @@ type Row = {
 };
 
 const TIME_SLOTS_ORDER = [
-  "19:35-20:30",
-  "20:30-21:30",
-  "21:40-22:30",
-  "00:30-01:30",
-  "01:30-02:30",
-  "02:40-03:30",
-  "03:30-04:30",
-  "04:50-05:50",
-  "05:50-06:50",
+  '19:35-20:30',
+  '20:30-21:30',
+  '21:40-22:30',
+  '22:30-23:30',
+  '23:30-00:30',
+  '00:30-01:30',
+  '01:30-02:30',
+  '02:40-03:30',
+  '03:30-04:30',
+  '04:50-05:50',
+  '05:50-06:50',
 ];
 
 export async function GET(request: NextRequest) {
@@ -56,14 +58,16 @@ export async function GET(request: NextRequest) {
           jsonb_build_object('target', ts.target, 'actual', ts.actual)
           ORDER BY CASE ts.timeSlot
                    WHEN '19:35-20:30' THEN 1
-                                WHEN '20:30-21:30' THEN 1
-                                WHEN '21:40-22:30' THEN 2
-                                WHEN '00:30-01:30' THEN 3
-                                WHEN '01:30-02:30' THEN 4
-                                WHEN '02:40-03:30' THEN 5
-                                WHEN '03:30-04:30' THEN 6
-                                WHEN '04:50-05:50' THEN 7
-                                WHEN '05:50-06:50' THEN 8
+                                WHEN '20:30-21:30' THEN 2
+                                WHEN '21:40-22:30' THEN 3
+                                WHEN '22:30-23:30' THEN 4
+                                WHEN '23:30-00:30' THEN 5
+                                WHEN '00:30-01:30' THEN 6
+                                WHEN '01:30-02:30' THEN 7
+                                WHEN '02:40-03:30' THEN 8
+                                WHEN '03:30-04:30' THEN 9
+                                WHEN '04:50-05:50' THEN 10
+                                WHEN '05:50-06:50' THEN 11
                             ELSE 99
                   END
                 ) AS timeslots
@@ -76,15 +80,17 @@ export async function GET(request: NextRequest) {
           JOIN timeSlots_${nametableurl} ts ON r.seq = ts.row_id
           WHERE ts.date = $1
             AND ts.timeSlot IN (
-                            '19:35-20:30',
-                              '20:30-21:30',
-                              '21:40-22:30',
-                              '00:30-01:30',
-                              '01:30-02:30',
-                              '02:40-03:30',
-                              '03:30-04:30',
-                              '04:50-05:50',
-                              '05:50-06:50'
+                    '19:35-20:30',
+                    '20:30-21:30',
+                    '21:40-22:30',
+                    '22:30-23:30',
+                    '23:30-00:30',
+                    '00:30-01:30',
+                    '01:30-02:30',
+                    '02:40-03:30',
+                    '03:30-04:30',
+                    '04:50-05:50',
+                    '05:50-06:50'
               )
             GROUP BY p.id, r.seq, r.partnumber, r.partdimension, r.firstpiece, 
                     r.machinestatus, r.componentstatus, r.target, r.actual

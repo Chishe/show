@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
     };
     
     const grouped = distributeByPartnumbers(inputs);
+    console.log(grouped);
     const client = await pool.connect();
 
     try {

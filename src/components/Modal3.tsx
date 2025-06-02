@@ -53,15 +53,17 @@ export const TIME_SLOTS = [
   "15:30-16:30",
   "16:50-17:50",
   "17:50-18:50",
-  "19:35-20:30",
+  "07:35-20:30",
   "20:30-21:30",
   "21:40-22:30",
+  "22:30-23:30",
+  "23:30-00:30",
   "00:30-01:30",
   "01:30-02:30",
   "02:40-03:30",
   "03:30-04:30",
   "04:50-05:50",
-  "05:50-06:50",
+  "05:50-06:50"
 ];
 
 // function parseTime(timeStr: string): Date {
@@ -182,7 +184,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       model: "",
       qty: "",
       ctTarget: "",
-      startTime: "19:35",
+      startTime: "07:35",
       endTime: "",
       stockPart: "",
       sequence: 1,
@@ -192,7 +194,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
 
   const loadPlanData = useCallback(async () => {
     const res = await fetch(
-      `/api/plan-c?nametableurl=${encodeURIComponent(
+      `/api/plan-b?nametableurl=${encodeURIComponent(
         nametableurl
       )}&date=${encodeURIComponent(dateTime)}`
     );
@@ -230,7 +232,6 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
 
       updatedRows[i] = row;
     }
-
     return updatedRows;
   }
 
@@ -372,7 +373,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
             model: "",
             qty: "",
             ctTarget: "",
-            startTime: "19:35",
+            startTime: "07:35",
             endTime: "",
             stockPart: "",
             sequence: 1,
@@ -381,7 +382,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       }
 
       const prevRow = rows[rows.length - 1];
-      const newStartTime = prevRow.endTime || "19:35";
+      const newStartTime = prevRow.endTime || "07:35";
       
       const [newStartHour, newStartMin] = newStartTime.split(":").map(Number);
       
@@ -471,7 +472,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       }
 
       // เรียก API PUT ครั้งที่สอง (ตัวอย่าง URL อาจเปลี่ยนตาม API จริง)
-      const res2 = await fetch(`/api/edit-plan-target/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
+      const res2 = await fetch(`/api/edit-plan-target-2/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -494,7 +495,6 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       const data = await loadPlanData();
       const updatedRows = updateAllRows(data);
       setRows(updatedRows);
-  
       toast.success("Updated remark and target successfully");
     } catch (error) {
       toast.error("Update error: " + (error as Error).message);

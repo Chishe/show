@@ -107,15 +107,13 @@ export async function PUT(req: NextRequest,
     // 5. ลบแถวอื่นที่ partnumber เดียวกัน และ qty = 0 หรือ null (ยกเว้นแถวปัจจุบัน)
     await pool.query(`
       DELETE FROM plan_${table}
-      WHERE partnumber IN (
+      WHERE partnumber = (
         SELECT partnumber FROM plan_${table}
-        WHERE id = $1 AND plandate = $2 AND jude = 'day'
+        WHERE plandate = $1
       )
-      AND id != $1
-      AND plandate = $2
-    `, [planId, date]);
-    
-    
+      AND plandate = $1
+      AND (qty IS NULL OR qty = 0)
+    `, [date]);
 
     return NextResponse.json({ message: "Update complete", totalTargetSum });
   } catch (error) {

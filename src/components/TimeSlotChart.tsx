@@ -73,48 +73,38 @@ const TimeSlotChart = ({ nametableurl, dateTime }: TimeSlotChartProps) => {
         })
         .then((data: ChartData[]) => {
           const slotIndexPartMap = new Map<string, Map<string, { target: number, actual: number }>>();
-
-          data.forEach((d, dataIndex) => {
+          data.forEach((d) => {
             const timeSlot = d.timeSlot;
             const partNumber = d.partNumber;
             const tArr = d.targetA[0] ?? [];
             const aArr = d.actualA[0] ?? [];
-          
-            console.log(`\n== Record ${dataIndex + 1} ==`);
-            console.log("timeSlot:", timeSlot);
-            console.log("partNumber:", partNumber);
-            console.log("targetA:", tArr);
-            console.log("actualA:", aArr);
-          
+
             for (let idx = 0; idx < 6; idx++) {
               const t = tArr[idx] ?? 0;
               const a = aArr[idx] ?? 0;
               const key = `${timeSlot}_${idx}`;
-          
+
               console.log(`  Slot ${idx} | Key: ${key} | t: ${t}, a: ${a}`);
-          
+
               if (!slotIndexPartMap.has(key)) {
                 console.log(`    ➕ Create new key: ${key}`);
                 slotIndexPartMap.set(key, new Map());
               }
-          
+
               const partMap = slotIndexPartMap.get(key)!;
-          
+
               if (!partMap.has(partNumber)) {
                 console.log(`    ➕ Add part: ${partNumber} to key: ${key}`);
                 partMap.set(partNumber, { target: 0, actual: 0 });
               }
-          
+
               const val = partMap.get(partNumber)!;
               val.target += t;
               val.actual += a;
-          
-              console.log(
-                `  Updated ${partNumber} in ${key} => target: ${val.target}, actual: ${val.actual}`
-              );
+
             }
           });
-          
+
 
           const labels: string[] = [];
           const target: number[] = [];
@@ -298,6 +288,7 @@ const TimeSlotChart = ({ nametableurl, dateTime }: TimeSlotChartProps) => {
   };
 
   const handleClick = (event: React.MouseEvent) => {
+
     if (chartRef.current) {
       const chart = chartRef.current;
       const points = chart.getElementsAtEventForMode(

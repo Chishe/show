@@ -421,7 +421,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
   };
   const deleteRow = async (id: number) => {
     try {
-      const res = await fetch(`/api/plan/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
+      const res = await fetch(`/api/del-plan/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
         method: "DELETE",
       });
 
@@ -460,7 +460,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       }
 
       // เรียก API PUT ครั้งที่สอง (ตัวอย่าง URL อาจเปลี่ยนตาม API จริง)
-      const res2 = await fetch(`/api/edit-plan-target/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
+      const res2 = await fetch(`/api/edit-plan-target-1/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -483,7 +483,6 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       const data = await loadPlanData();
       const updatedRows = updateAllRows(data);
       setRows(updatedRows);
-  
       toast.success("Updated remark and target successfully");
     } catch (error) {
       toast.error("Update error: " + (error as Error).message);

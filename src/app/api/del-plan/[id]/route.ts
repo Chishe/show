@@ -30,18 +30,18 @@ export async function DELETE(
     // ✅ ตรวจสอบว่ามี actual จริงอยู่หรือไม่ โดย join สามตาราง
     const actualCheck = await client.query(
       `
-     SELECT
+SELECT
   CASE
     WHEN EXISTS (
       SELECT 1
       FROM plan_${table} p
       JOIN rows_${table} r
-        ON p.partnumber = r.partnumber AND r.date = p.plandate AND r.jude = 'day'
+        ON p.partnumber = r.partnumber AND r.date = p.plandate AND r.jude = 'night'
       JOIN timeSlots_${table} t
         ON r.seq = t.row_id AND t.date = p.plandate
       WHERE p.id = $1
         AND p.plandate = $2
-        AND p.jude = 'day'
+        AND p.jude = 'night'
         AND jsonb_typeof(t.actual) = 'array'
         AND EXISTS (
           SELECT 1 FROM jsonb_array_elements(t.actual) elem
@@ -51,10 +51,11 @@ export async function DELETE(
     THEN 1
     ELSE 0
   END AS has_actual_data;
+
       `,
       [planId, date]
     );
-    
+
     const actualCount = parseInt(actualCheck.rows[0].has_actual_data, 10);
     if (actualCount > 0) {
       await client.query("ROLLBACK");
@@ -63,7 +64,7 @@ export async function DELETE(
         { status: 400 }
       );
     }
-    
+
 
     // ✅ ดึง row_id เพื่อลบ timeSlots และ rows
     const rowRes = await client.query(
@@ -71,7 +72,8 @@ export async function DELETE(
       SELECT r.seq
       FROM plan_${table} p
       JOIN rows_${table} r ON p.partnumber = r.partnumber AND r.date = p.plandate
-      WHERE p.id = $1 AND p.plandate = $2 AND p.jude = 'day'
+      WHERE p.id = $1 AND p.plandate = $2 AND p.jude = 'night'
+
       `,
       [planId, date]
     );
@@ -90,9 +92,9 @@ export async function DELETE(
       );
     }
 
-    // ✅ ลบ plan
+    // ✅ ลบ plan ที่ jude = 'night'
     await client.query(
-      `DELETE FROM plan_${table} WHERE id = $1 AND plandate = $2 AND jude = 'day'`,
+      `DELETE FROM plan_${table} WHERE id = $1 AND plandate = $2 AND jude = 'night'`,
       [planId, date]
     );
 

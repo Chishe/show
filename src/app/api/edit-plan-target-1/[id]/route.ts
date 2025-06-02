@@ -109,13 +109,11 @@ export async function PUT(req: NextRequest,
       DELETE FROM plan_${table}
       WHERE partnumber IN (
         SELECT partnumber FROM plan_${table}
-        WHERE id = $1 AND plandate = $2 AND jude = 'day'
+        WHERE id = $1 AND plandate = $2 AND jude = 'night'
       )
       AND id != $1
       AND plandate = $2
     `, [planId, date]);
-    
-    
 
     return NextResponse.json({ message: "Update complete", totalTargetSum });
   } catch (error) {
