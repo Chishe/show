@@ -42,7 +42,7 @@ export async function PUT(req: NextRequest,
       JOIN time_ranges tr
         ON p.starttime::time < tr.end_range
        AND p.endtime::time > tr.start_range
-      WHERE p.id = $1 AND p.plandate = $2
+      WHERE p.id = $1 AND p.plandate = $2 AND p.jude ='night'
     `, [planId, date]);
 
     const timeSlots = timeslotRows.map(r => r.timeslot);
@@ -66,12 +66,12 @@ export async function PUT(req: NextRequest,
               END
             ) AS cleaned_target
           FROM plan_${table} p
-          JOIN rows_${table} r ON p.partnumber = r.partnumber AND r.date = p.plandate
-          JOIN timeSlots_${table} t ON r.seq = t.row_id AND t.date = p.plandate AND t.timeslot = $3
+          JOIN rows_${table} r ON p.partnumber = r.partnumber AND r.date = p.plandate AND r.jude = 'night'
+          JOIN timeSlots_${table} t ON r.seq = t.row_id AND t.date = p.plandate AND t.timeslot = $3 AND t.jude = 'night'
           JOIN jsonb_array_elements(t.target) WITH ORDINALITY AS target_elem(value, ordinality) ON TRUE
           LEFT JOIN jsonb_array_elements(t.actual) WITH ORDINALITY AS actual_elem(value, ordinality)
             ON target_elem.ordinality = actual_elem.ordinality
-          WHERE p.id = $1 AND p.plandate = $2
+          WHERE p.id = $1 AND p.plandate = $2  AND p.jude = 'night'
           GROUP BY t.row_id
         )
         UPDATE timeSlots_${table} t
@@ -86,9 +86,9 @@ export async function PUT(req: NextRequest,
       WITH target_values AS (
         SELECT jsonb_array_elements_text(t.target) AS value_text
         FROM plan_${table} p
-        JOIN rows_${table} r ON p.partnumber = r.partnumber AND r.date = p.plandate
-        JOIN timeSlots_${table} t ON r.seq = t.row_id AND t.date = p.plandate
-        WHERE p.id = $1 AND p.plandate = $2 AND t.timeslot = ANY($3::text[])
+        JOIN rows_${table} r ON p.partnumber = r.partnumber AND r.date = p.plandate AND r.jude = 'night'
+        JOIN timeSlots_${table} t ON r.seq = t.row_id AND t.date = p.plandate AND t.jude = 'night'
+        WHERE p.id = $1 AND p.plandate = $2 AND t.timeslot = ANY($3::text[]) AND p.jude = 'night'
       )
       SELECT SUM(value_text::numeric) AS total_target_sum
       FROM target_values
@@ -100,9 +100,12 @@ export async function PUT(req: NextRequest,
     // 4. อัปเดต qty ด้วยยอดรวม
     await pool.query(`
       UPDATE plan_${table}
-      SET qty = $3
-      WHERE id = $1 AND plandate = $2;
+      SET qty = $3,
+          cttarget = ROUND(cttarget / 2)
+      WHERE id = $1 AND plandate = $2 AND jude = 'night';
     `, [planId, date, totalTargetSum]);
+    
+    
 
     // 5. ลบแถวอื่นที่ partnumber เดียวกัน และ qty = 0 หรือ null (ยกเว้นแถวปัจจุบัน)
     await pool.query(`
