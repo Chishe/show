@@ -63,53 +63,68 @@ export async function GET(request: NextRequest) {
     }
 
     const rowsQuery = `
-    SELECT p.id AS plan_id, r.seq, r.partnumber, r.partdimension, r.firstpiece, 
-           r.machinestatus, r.componentstatus, 
-           r.target, r.actual, 
-           jsonb_object_agg(
-             ts.timeSlot,
-             jsonb_build_object('target', ts.target, 'actual', ts.actual)
-             ORDER BY CASE ts.timeSlot
-               WHEN '07:35-08:30' THEN 1
-               WHEN '08:30-09:30' THEN 2
-               WHEN '09:40-10:30' THEN 3
-               WHEN '10:30-11:30' THEN 4
-               WHEN '12:30-13:30' THEN 5
-               WHEN '13:30-14:30' THEN 6
-               WHEN '14:40-15:30' THEN 7
-               WHEN '15:30-16:30' THEN 8
-               WHEN '16:50-17:50' THEN 9
-               WHEN '17:50-18:50' THEN 10
-               ELSE 99
-             END
-           ) AS timeslots
-    FROM (
-      SELECT DISTINCT ON (partnumber) id, partnumber
-      FROM plan_${nametableurl}
-      ORDER BY partnumber, id
-    ) p
-    JOIN rows_${nametableurl} r ON r.partnumber = p.partnumber
-    JOIN timeSlots_${nametableurl} ts ON r.seq = ts.row_id
-    WHERE ts.date = $1
-      AND ts.timeSlot IN (
-        '07:35-08:30',
-        '08:30-09:30',
-        '09:40-10:30',
-        '10:30-11:30',
-        '12:30-13:30',
-        '13:30-14:30',
-        '14:40-15:30',
-        '15:30-16:30',
-        '16:50-17:50',
-        '17:50-18:50'
-      )
-    GROUP BY p.id, r.seq, r.partnumber, r.partdimension, r.firstpiece, 
-             r.machinestatus, r.componentstatus, r.target, r.actual
-    ORDER BY p.id ASC;
+SELECT 
+  p.id AS plan_id,
+  p.sequence,
+  p.jude,
+  p.plandate,
+  r.seq,
+  r.partnumber,
+  r.partdimension,
+  r.firstpiece,
+  r.machinestatus,
+  r.componentstatus,
+  r.target,
+  r.actual,
+  jsonb_object_agg(
+    ts.timeSlot,
+    jsonb_build_object('target', ts.target, 'actual', ts.actual)
+    ORDER BY CASE ts.timeSlot
+      WHEN '07:35-08:30' THEN 1
+      WHEN '08:30-09:30' THEN 2
+      WHEN '09:40-10:30' THEN 3
+      WHEN '10:30-11:30' THEN 4
+      WHEN '12:30-13:30' THEN 5
+      WHEN '13:30-14:30' THEN 6
+      WHEN '14:40-15:30' THEN 7
+      WHEN '15:30-16:30' THEN 8
+      WHEN '16:50-17:50' THEN 9
+      WHEN '17:50-18:50' THEN 10
+      ELSE 99
+    END
+  ) AS timeslots
+FROM (
+  SELECT DISTINCT ON (partnumber) id, partnumber, sequence, jude, plandate
+  FROM plan_${nametableurl}
+  WHERE plandate = $1
+  ORDER BY partnumber, id
+) p
+JOIN rows_${nametableurl} r ON r.partnumber = p.partnumber
+JOIN timeSlots_${nametableurl} ts ON r.seq = ts.row_id
+WHERE ts.date = $1 
+  AND ts.jude = 'day'
+  AND ts.timeSlot IN (
+    '07:35-08:30',
+    '08:30-09:30',
+    '09:40-10:30',
+    '10:30-11:30',
+    '12:30-13:30',
+    '13:30-14:30',
+    '14:40-15:30',
+    '15:30-16:30',
+    '16:50-17:50',
+    '17:50-18:50'
+  )
+GROUP BY 
+  p.id, p.sequence, p.jude, p.plandate,
+  r.seq, r.partnumber, r.partdimension, r.firstpiece, 
+  r.machinestatus, r.componentstatus, r.target, r.actual
+ORDER BY p.sequence;
+
   `;
-  
-  
-  
+
+
+
 
     const rowsResult = await pool.query(rowsQuery, [date]);
 

@@ -5,6 +5,7 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const nametableurl = searchParams.get("nametableurl") || "core_1";
+        const time = searchParams.get("time");
     const now = new Date();
     const nowTime = now.toTimeString().slice(0, 5);
     const isDay = nowTime >= "07:35" && nowTime <= "18:50";
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
           ORDER BY elem.ordinality DESC
           LIMIT 1
         ) AS elem
-        WHERE ts.date = CURRENT_DATE AND ts.jude = '${selectTime}'
+        WHERE ts.date = '${time}' AND ts.jude = '${selectTime}'
       ),
       ordered_slots AS (
         SELECT *,
@@ -101,7 +102,7 @@ export async function GET(req: NextRequest) {
     const effectivelotRes = await pool.query(`
     SELECT split_part(effectivelot, 'Lot-', 2) AS effectivelot
     FROM public.records_${nametableurl}
-    WHERE due::date = CURRENT_DATE
+    WHERE due::date = '${time}'
     ORDER BY itemno DESC;
     `);
 
@@ -114,12 +115,12 @@ export async function GET(req: NextRequest) {
       WITH actual_values AS (
         SELECT (jsonb_array_elements_text(t.actual))::int AS val
         FROM ${tableName} t
-        WHERE date = CURRENT_DATE AND timeSlot = $1  AND jude = '${selectTime}'
+        WHERE date = '${time}' AND timeSlot = $1  AND jude = '${selectTime}'
       ),
       target_values AS (
         SELECT (jsonb_array_elements_text(t.target))::int AS val
         FROM ${tableName} t
-        WHERE date = CURRENT_DATE AND timeSlot = $1  AND jude = '${selectTime}'
+        WHERE date = '${time}' AND timeSlot = $1  AND jude = '${selectTime}'
       )
       SELECT
         (SELECT COALESCE(SUM(val), 0) FROM actual_values) AS sum_actual,
@@ -139,28 +140,17 @@ export async function GET(req: NextRequest) {
       ]
     };
 
-    // const sumBySlotRes = await pool.query(`
-    //   SELECT t.timeslot,
-    //         SUM(a.elem::int) AS sum_actual,
-    //         SUM(b.elem::int) AS sum_target
-    //   FROM ${tableName} t
-    //   LEFT JOIN LATERAL jsonb_array_elements_text(t.actual) WITH ORDINALITY AS a(elem, idx) ON true
-    //   LEFT JOIN LATERAL jsonb_array_elements_text(t.target) WITH ORDINALITY AS b(elem, idx) ON b.idx = a.idx
-    //   WHERE t.date = CURRENT_DATE AND t.jude = '${selectTime}'
-    //   GROUP BY t.timeslot;
-    // `);
-
     const sumBySlotRes = await pool.query(`
-      SELECT t.timeslot,
-             t.actual,  -- ดึง actual array จริง ๆ มาเพื่อตรวจสอบ null ใน JS
-             SUM(a.elem::int) AS sum_actual,
-             SUM(b.elem::int) AS sum_target
-      FROM ${tableName} t
-      LEFT JOIN LATERAL jsonb_array_elements_text(t.actual) WITH ORDINALITY AS a(elem, idx) ON true
-      LEFT JOIN LATERAL jsonb_array_elements_text(t.target) WITH ORDINALITY AS b(elem, idx) ON b.idx = a.idx
-      WHERE t.date = CURRENT_DATE AND t.jude = '${selectTime}'
-      GROUP BY t.timeslot, t.actual;
-          `);
+SELECT t.timeslot,
+       t.actual,  -- ดึง actual array จริง ๆ มาเพื่อตรวจสอบ null ใน JS
+       SUM(a.elem::int) AS sum_actual,
+       SUM(b.elem::int) AS sum_target
+FROM ${tableName} t
+LEFT JOIN LATERAL jsonb_array_elements_text(t.actual) WITH ORDINALITY AS a(elem, idx) ON true
+LEFT JOIN LATERAL jsonb_array_elements_text(t.target) WITH ORDINALITY AS b(elem, idx) ON b.idx = a.idx
+WHERE t.date = '${time}' AND t.jude = '${selectTime}'
+GROUP BY t.timeslot, t.actual;
+    `);
 
     type SlotData = {
       [slot: string]: { target: number; actual: number }
@@ -168,41 +158,31 @@ export async function GET(req: NextRequest) {
     const sum_actual_day: SlotData = {};
     const sum_actual_night: SlotData = {}
 
-    // sumBySlotRes.rows.forEach((row) => {
-    //   const slot = row.timeslot as string;
-    //   const actual = Number(row.sum_actual || 0);
-    //   const target = Number(row.sum_target || 0);
+sumBySlotRes.rows.forEach((row) => {
+  const slot = row.timeslot as string;
+  const actualArr = row.actual as any[]; // actual เป็น JSONB array
+  const actual = Number(row.sum_actual || 0);
+  const target = Number(row.sum_target || 0);
 
-    //   if (timeSlotGroups.day.includes(slot)) {
-    //     sum_actual_day[slot] = { target, actual };
-    //   } else if (timeSlotGroups.night.includes(slot)) {
-    //     sum_actual_night[slot] = { target, actual };
-    //   }
-    // });
+  // เช็คว่า actual array มีข้อมูลจริง ๆ หรือไม่ (ไม่ใช่ null/undefined ทั้งหมด)
+  const hasActualData = Array.isArray(actualArr) && actualArr.some(val => val !== null && val !== undefined);
 
-    sumBySlotRes.rows.forEach((row) => {
-      const slot = row.timeslot as string;
-      const actualArr = row.actual as any[]; // actual เป็น JSONB array
-      const actual = Number(row.sum_actual || 0);
-      const target = Number(row.sum_target || 0);
+  // เช็คว่า actual array กรอกครบหรือไม่ (ไม่มีค่า null หรือ undefined)
+  const isActualComplete = Array.isArray(actualArr) && actualArr.every(val => val !== null && val !== undefined);
+
+  // ถ้าไม่มี actual เลย หรือ actual ยังกรอกไม่ครบ ให้ข้าม slot นี้
+  if (!hasActualData || !isActualComplete) {
+    return; // skip slot นี้
+  }
+
+  if (timeSlotGroups.day.includes(slot)) {
+    sum_actual_day[slot] = { target, actual };
+  } else if (timeSlotGroups.night.includes(slot)) {
+    sum_actual_night[slot] = { target, actual };
+  }
+});
+
     
-      // เช็คว่า actual array มีข้อมูลจริง ๆ หรือไม่ (ไม่ใช่ null/undefined ทั้งหมด)
-      const hasActualData = Array.isArray(actualArr) && actualArr.some(val => val !== null && val !== undefined);
-    
-      // เช็คว่า actual array กรอกครบหรือไม่ (ไม่มีค่า null หรือ undefined)
-      const isActualComplete = Array.isArray(actualArr) && actualArr.every(val => val !== null && val !== undefined);
-    
-      // ถ้าไม่มี actual เลย หรือ actual ยังกรอกไม่ครบ ให้ข้าม slot นี้
-      if (!hasActualData || !isActualComplete) {
-        return; // skip slot นี้
-      }
-    
-      if (timeSlotGroups.day.includes(slot)) {
-        sum_actual_day[slot] = { target, actual };
-      } else if (timeSlotGroups.night.includes(slot)) {
-        sum_actual_night[slot] = { target, actual };
-      }
-    });
 
     const sum_actual = Number(sumsRes.rows[0].sum_actual);
     const sum_target = Number(sumsRes.rows[0].sum_target);

@@ -160,7 +160,7 @@ const DnDFlow = () => {
         nodesResponse.data.map((node: NodeType) => {
           const nodeData = node.label ? valuesMap[node.label] || {} : {};
           const bgNodeData = node.label ? bgDataMap[node.label] : null;
-          const orValue = (bgNodeData?.[0]?.or_percent ?? 0) + "%";
+          const orValue = (bgNodeData?.or_percent ?? 0) + "%";
           let backgroundColor = "#41d4a8";
           let handleRightColor = "#41d4a8";
 
@@ -168,7 +168,7 @@ const DnDFlow = () => {
             handleRightColor = nodeData.result === 0 ? "#00FF00" : "#DC143C";
           }
 
-          const nodeColor = bgNodeData?.[0]?.node_color || null;
+          const nodeColor = bgNodeData?.node_color || null;
           if (nodeColor === "red") {
             backgroundColor = "#DC143C";
           } else if (nodeColor === "green") {
@@ -194,7 +194,7 @@ const DnDFlow = () => {
                       <a
                         href={
                           node.label?.match(/^Core#\d+$/)
-                            ? `http://192.168.1.106:4000/loss_${node.label.toLowerCase().replace('#', '_')}`
+                            ? `/loss_${node.label.toLowerCase().replace('#', '_')}`
                             : "https://www.tsdmcd.com/dekidaka"
                         }
                         target="_blank"

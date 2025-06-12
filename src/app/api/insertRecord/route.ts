@@ -4,11 +4,13 @@ import pool from "@/lib/db";
 export async function POST(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const nametableurl = searchParams.get("nametableurl") || "core_1";
-    const newRecord = await request.json();
 
-    if (!/^[a-zA-Z0-9_]+$/.test(nametableurl)) {
-      return NextResponse.json({ error: "Invalid table name" }, { status: 400 });
+    const newRecord = await request.json();
+    const nametableurl = searchParams.get("table");
+
+
+    if (!nametableurl || !/^[a-zA-Z0-9_]+$/.test(nametableurl)) {
+      return NextResponse.json({ error: "Invalid or missing table name" }, { status: 400 });
     }
     const query = `
       INSERT INTO records_${nametableurl} (

@@ -8,19 +8,6 @@ const columns = [
   {
     key: "partNumber",
     label: "Part Number",
-    type: "select",
-    options: [
-      "TG447687-0430",
-      "TG447686-1830",
-      "TG447682-5330",
-      "TG447682-5080",
-      "TG447683-6100",
-      "TG447683-5940",
-      "TG447681-1380",
-      "TG447681-2930",
-      "TG447681-1500",
-      "TG447681-1620",
-      "TG447670-0090"],
   },
   { key: "model", label: "Model" },
   { key: "qty", label: "QTY. (PCS)", type: "number" },
@@ -269,7 +256,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       if (index === -1) return rows;
 
       const row = { ...updatedRows[index], [key]: value };
-      
+
 
       if (
         ["startTime", "qty", "ctTarget"].includes(key) &&
@@ -457,7 +444,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
       const data = await loadPlanData();
       const updatedRows = updateAllRows(data);
       setRows(updatedRows);
-  
+
       toast.success("Updated remark and target successfully");
     } catch (error) {
       toast.error("Update error: " + (error as Error).message);
@@ -520,24 +507,9 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
                           disabled
                         />
                       </td>
-                      {columns.map(({ key, type, options }) => (
+                      {columns.map(({ key, type }) => (
                         <td key={key} className="p-2">
-                          {type === "select" ? (
-                            <select
-                              className="w-full p-2 bg-white rounded border"
-                              value={row[key as keyof Row]}
-                              onChange={(e) =>
-                                updateRow(row.id, key as keyof Row, e.target.value)
-                              }
-                            >
-                              <option value="">Select</option>
-                              {options?.map((opt) => (
-                                <option key={opt} value={opt}>
-                                  {opt}
-                                </option>
-                              ))}
-                            </select>
-                          ) : key === "startTime" || key === "endTime" ? (
+                          {key === "startTime" || key === "endTime" ? (
                             <div className="w-full p-2 bg-gray-100 rounded border text-left text-black">
                               {row[key as keyof Row] || "-"}
                             </div>
@@ -545,15 +517,26 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
                             <input
                               type={type || "text"}
                               className="w-full p-2 bg-white rounded border"
-                              value={row[key as keyof Row]}
+                              value={
+                                key === "partNumber"
+                                  ? String(row[key as keyof Row] || "").toUpperCase()
+                                  : row[key as keyof Row]
+                              }
                               onChange={(e) =>
-                                updateRow(row.id, key as keyof Row, e.target.value)
+                                updateRow(
+                                  row.id,
+                                  key as keyof Row,
+                                  key === "partNumber"
+                                    ? e.target.value.toUpperCase()
+                                    : e.target.value
+                                )
                               }
                               min={type === "number" ? 0 : undefined}
                             />
                           )}
                         </td>
                       ))}
+
                       <td className="p-2">
                         <button
                           onClick={() => remarkeRow(row.id)}
@@ -573,6 +556,8 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
                       </td>
                     </tr>
                   ))}
+
+
                 </tbody>
               </table>
             </div>

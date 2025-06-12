@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     const sql = `
-      SELECT itemno, situation, problemtype, factor, partno, details, action, pic, due, status, effectivelot 
+      SELECT itemno, situation, problemtype, factor, partno, details, action, pic, due, status, effectivelot,createdat 
       FROM records_${nametableurl} 
       WHERE due LIKE $1
       ORDER BY itemno ASC

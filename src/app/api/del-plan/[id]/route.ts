@@ -26,8 +26,6 @@ export async function DELETE(
 
   try {
     await client.query("BEGIN");
-
-    // ✅ ตรวจสอบว่ามี actual จริงอยู่หรือไม่ โดย join สามตาราง
     const actualCheck = await client.query(
       `
 SELECT
@@ -38,7 +36,7 @@ SELECT
       JOIN rows_${table} r
         ON p.partnumber = r.partnumber AND r.date = p.plandate AND r.jude = 'night'
       JOIN timeSlots_${table} t
-        ON r.seq = t.row_id AND t.date = p.plandate
+        ON r.seq = t.row_id AND t.date = p.plandate AND t.jude = 'night'
       WHERE p.id = $1
         AND p.plandate = $2
         AND p.jude = 'night'
@@ -51,7 +49,6 @@ SELECT
     THEN 1
     ELSE 0
   END AS has_actual_data;
-
       `,
       [planId, date]
     );
@@ -65,15 +62,12 @@ SELECT
       );
     }
 
-
-    // ✅ ดึง row_id เพื่อลบ timeSlots และ rows
     const rowRes = await client.query(
       `
       SELECT r.seq
       FROM plan_${table} p
-      JOIN rows_${table} r ON p.partnumber = r.partnumber AND r.date = p.plandate
+      JOIN rows_${table} r ON p.partnumber = r.partnumber AND r.date = p.plandate AND r.jude = 'night'
       WHERE p.id = $1 AND p.plandate = $2 AND p.jude = 'night'
-
       `,
       [planId, date]
     );
@@ -82,17 +76,16 @@ SELECT
 
     if (rowId !== undefined) {
       await client.query(
-        `DELETE FROM timeSlots_${table} WHERE row_id = $1 AND date = $2`,
+        `DELETE FROM timeSlots_${table} WHERE row_id = $1 AND date = $2 AND jude = 'night'`,
         [rowId, date]
       );
 
       await client.query(
-        `DELETE FROM rows_${table} WHERE seq = $1 AND date = $2`,
+        `DELETE FROM rows_${table} WHERE seq = $1 AND date = $2 AND jude = 'night'`,
         [rowId, date]
       );
     }
 
-    // ✅ ลบ plan ที่ jude = 'night'
     await client.query(
       `DELETE FROM plan_${table} WHERE id = $1 AND plandate = $2 AND jude = 'night'`,
       [planId, date]

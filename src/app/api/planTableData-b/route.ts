@@ -50,14 +50,24 @@ export async function GET(request: NextRequest) {
 
 
     const rowsQuery = `
-          SELECT p.id AS plan_id, r.seq, r.partnumber, r.partdimension, r.firstpiece, 
-          r.machinestatus, r.componentstatus, 
-          r.target, r.actual, 
-          jsonb_object_agg(
-          ts.timeSlot,
-          jsonb_build_object('target', ts.target, 'actual', ts.actual)
-          ORDER BY CASE ts.timeSlot
-                   WHEN '19:35-20:30' THEN 1
+          SELECT 
+  p.id AS plan_id,
+  p.sequence,
+  p.jude,
+  p.plandate,
+  r.seq,
+  r.partnumber,
+  r.partdimension,
+  r.firstpiece,
+  r.machinestatus,
+  r.componentstatus,
+  r.target,
+  r.actual,
+  jsonb_object_agg(
+    ts.timeSlot,
+    jsonb_build_object('target', ts.target, 'actual', ts.actual)
+    ORDER BY CASE ts.timeSlot
+             WHEN '19:35-20:30' THEN 1
                                 WHEN '20:30-21:30' THEN 2
                                 WHEN '21:40-22:30' THEN 3
                                 WHEN '22:30-23:30' THEN 4
@@ -68,18 +78,20 @@ export async function GET(request: NextRequest) {
                                 WHEN '03:30-04:30' THEN 9
                                 WHEN '04:50-05:50' THEN 10
                                 WHEN '05:50-06:50' THEN 11
-                            ELSE 99
-                  END
-                ) AS timeslots
-          FROM (
-            SELECT DISTINCT ON (partnumber) id, partnumber
-            FROM plan_${nametableurl}
-            ORDER BY partnumber, id
-          ) p
-          JOIN rows_${nametableurl} r ON r.partnumber = p.partnumber
-          JOIN timeSlots_${nametableurl} ts ON r.seq = ts.row_id
-          WHERE ts.date = $1
-            AND ts.timeSlot IN (
+      ELSE 99
+    END
+  ) AS timeslots
+FROM (
+  SELECT DISTINCT ON (partnumber) id, partnumber, sequence, jude, plandate
+  FROM plan_${nametableurl}
+  WHERE plandate = $1
+  ORDER BY partnumber, id
+) p
+JOIN rows_${nametableurl} r ON r.partnumber = p.partnumber
+JOIN timeSlots_${nametableurl} ts ON r.seq = ts.row_id
+WHERE ts.date = $1 
+  AND ts.jude = 'day'
+  AND ts.timeSlot IN (
                     '19:35-20:30',
                     '20:30-21:30',
                     '21:40-22:30',
@@ -91,10 +103,13 @@ export async function GET(request: NextRequest) {
                     '03:30-04:30',
                     '04:50-05:50',
                     '05:50-06:50'
-              )
-            GROUP BY p.id, r.seq, r.partnumber, r.partdimension, r.firstpiece, 
-                    r.machinestatus, r.componentstatus, r.target, r.actual
-            ORDER BY p.id ASC;
+  )
+GROUP BY 
+  p.id, p.sequence, p.jude, p.plandate,
+  r.seq, r.partnumber, r.partdimension, r.firstpiece, 
+  r.machinestatus, r.componentstatus, r.target, r.actual
+ORDER BY p.sequence;
+
           `;
 
 

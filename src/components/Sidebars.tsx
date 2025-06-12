@@ -10,7 +10,7 @@ const Sidebars = () => {
   };
 
   return (
-    <div className="sidebar w-full ">
+    <div className="sidebar w-full">
       <div
         className="node cursor-pointer p-2 mb-2 bg-[#41d4a8] rounded-md hover:bg-[#36b093] mt-45"
         draggable

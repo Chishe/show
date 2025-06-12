@@ -134,12 +134,13 @@ export default function LossMemo({ nametableurl, dateTime }: LossMemoProps) {
               <th className="px-4 py-2 border">Due</th>
               <th className="px-4 py-2 border">Status</th>
               <th className="px-4 py-2 border">Effective Lot</th>
+              <th className="px-4 py-2 border">Createdat</th>
             </tr>
           </thead>
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={11} className="text-center text-gray-500 py-4 border">
+                <td colSpan={12} className="text-center text-gray-500 py-4 border">
                   <div className="relative z-10 flex flex-col items-center justify-center gap-2">
                     <GiCardboardBox size={32} />
                     <span>No data</span>

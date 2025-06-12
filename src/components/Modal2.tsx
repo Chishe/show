@@ -8,19 +8,6 @@ const columns = [
   {
     key: "partNumber",
     label: "Part Number",
-    type: "select",
-    options: [
-      "TG447687-0430",
-      "TG447686-1830",
-      "TG447682-5330",
-      "TG447682-5080",
-      "TG447683-6100",
-      "TG447683-5940",
-      "TG447681-1380",
-      "TG447681-2930",
-      "TG447681-1500",
-      "TG447681-1620",
-      "TG447670-0090"],
   },
   { key: "model", label: "Model" },
   { key: "qty", label: "QTY. (PCS)", type: "number" },
@@ -28,6 +15,7 @@ const columns = [
   { key: "startTime", label: "Start Time", type: "time" },
   { key: "endTime", label: "End Time", type: "time" },
 ];
+
 
 type Row = {
   id: number;
@@ -190,7 +178,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
     const data = await res.json();
     return data;
   }, [nametableurl, dateTime]);
-  
+
   function updateAllRows(rows: Row[]): Row[] {
     if (rows.length === 0) return rows;
 
@@ -371,21 +359,21 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
 
       const prevRow = rows[rows.length - 1];
       const newStartTime = prevRow.endTime || "19:35";
-      
+
       const [newStartHour, newStartMin] = newStartTime.split(":").map(Number);
-      
+
       // สร้างวันที่ใหม่สำหรับ newStartDate
       const now = new Date();
       const newStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), newStartHour, newStartMin, 0, 0);
-      
+
       // สร้าง endLimit เป็น 06:50 ของวันถัดไป
       const endLimit = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 6, 50, 0, 0);
-      
+
       if (newStartDate >= endLimit) {
         alert("Cannot add more rows. End time limit reached (06:50 next day).");
         return rows;
       }
-      
+
 
       return [
         ...rows,
@@ -474,7 +462,6 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
         return;
       }
 
-      // ถ้าเรียกสำเร็จทั้ง 2 ครั้ง อัปเดต state
       setRows((prevRows) =>
         prevRows.map(row =>
           row.id === id ? { ...row, remark: "remark" } : row
@@ -545,24 +532,9 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
                           disabled
                         />
                       </td>
-                      {columns.map(({ key, type, options }) => (
+                      {columns.map(({ key, type }) => (
                         <td key={key} className="p-2">
-                          {type === "select" ? (
-                            <select
-                              className="w-full p-2 bg-white rounded border"
-                              value={row[key as keyof Row]}
-                              onChange={(e) =>
-                                updateRow(row.id, key as keyof Row, e.target.value)
-                              }
-                            >
-                              <option value="">Select</option>
-                              {options?.map((opt) => (
-                                <option key={opt} value={opt}>
-                                  {opt}
-                                </option>
-                              ))}
-                            </select>
-                          ) : key === "startTime" || key === "endTime" ? (
+                          {key === "startTime" || key === "endTime" ? (
                             <div className="w-full p-2 bg-gray-100 rounded border text-left text-black">
                               {row[key as keyof Row] || "-"}
                             </div>
@@ -570,15 +542,26 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
                             <input
                               type={type || "text"}
                               className="w-full p-2 bg-white rounded border"
-                              value={row[key as keyof Row]}
+                              value={
+                                key === "partNumber"
+                                  ? String(row[key as keyof Row] || "").toUpperCase()
+                                  : row[key as keyof Row]
+                              }
                               onChange={(e) =>
-                                updateRow(row.id, key as keyof Row, e.target.value)
+                                updateRow(
+                                  row.id,
+                                  key as keyof Row,
+                                  key === "partNumber"
+                                    ? e.target.value.toUpperCase()
+                                    : e.target.value
+                                )
                               }
                               min={type === "number" ? 0 : undefined}
                             />
                           )}
                         </td>
                       ))}
+
                       <td className="p-2">
                         <button
                           onClick={() => remarkeRow(row.id)}
@@ -598,6 +581,7 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
                       </td>
                     </tr>
                   ))}
+
                 </tbody>
               </table>
             </div>
