@@ -67,10 +67,10 @@ body {
 }
 
 .sidebar {
-  width: 200px;
-  background-color: #e0e0e0;
-  padding: 10px;
-  border-right: 2px solid #ccc;
+  border-radius: 12px;
+  padding: 5px;
+  height: 100%;
+  background-color: #586F97;
 }
 
 .node {

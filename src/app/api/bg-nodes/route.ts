@@ -182,7 +182,7 @@ export async function GET(req: NextRequest) {
 
     sumBySlotRes.rows.forEach((row) => {
       const slot = row.timeslot as string;
-      const actualArr = row.actual as any[]; // actual เป็น JSONB array
+      const actualArr = row.actual as (number | null)[]; // actual เป็น JSONB array
       const actual = Number(row.sum_actual || 0);
       const target = Number(row.sum_target || 0);
     

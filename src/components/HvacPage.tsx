@@ -24,21 +24,29 @@ const HvacPage = () => {
         <ReactFlowProvider>
           <DnDProvider>
             <div className="flex">
-              <div className="flex-col flex-1">
-                <div className="flex flex-1">
+            <div className="flex flex-col flex-1 overflow-y-auto p-4">
+                <div className="flex shadow-sm overflow-x-auto
+                                [&::-webkit-scrollbar]:h-1 
+                                [&::-webkit-scrollbar-track]:bg-gray-100 
+                                [&::-webkit-scrollbar-thumb]:bg-gray-300 
+                                dark:[&::-webkit-scrollbar-track]:bg-[#151c34] 
+                                dark:[&::-webkit-scrollbar-thumb]:bg-[#aeaeb7]">
                   <SafetyStatusCard type="hvac" />
                   <QualityStatusCard type="hvac" />
                   <DeliveryStatusCard type="hvac" />
                   <CostStatusCard type="hvac" />
                   <EnergyStatusCard type="hvac" />
                 </div>
-                <div className="flex flex-1">
-                  <DnDFlow />
+                <div className="flex-1 flex items-stretch justify-between gap-2 h-full py-4">
+                  <div className="basis-4/5 h-full">
+                    <DnDFlow />
+                  </div>
+                  <div className="basis-1/5 h-full">
+                    <Sidebar />
+                  </div>
                 </div>
                   <ProductionStatusCards type="hvac" />
               </div>
-
-              <Sidebar />
             </div>
             <ToastContainer />
           </DnDProvider>
