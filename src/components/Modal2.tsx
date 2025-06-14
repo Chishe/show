@@ -421,8 +421,24 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
 
       setRows((prevRows) => {
         const indexToDelete = prevRows.findIndex((row) => row.id === id);
-        const updatedRows = prevRows.filter((r) => r.id !== id);
+        const updatedRows = prevRows.filter((row) => row.id !== id);
+    
+        if (indexToDelete === 0 && updatedRows.length > 0) {
+          updatedRows[0] = {
+            ...updatedRows[0],
+            startTime: "07:35",
+          };
+    
+          const { qty, ctTarget } = updatedRows[0];
+          if (qty && ctTarget) {
+            updatedRows[0].endTime = calculateEndTime("07:35", qty, ctTarget);
+          } else {
+            updatedRows[0].endTime = "";
+          }
+        }
+    
         toast.success("Deleted successfully");
+    
         return recalculateRowsFromIndex(updatedRows, indexToDelete);
       });
     } catch (error) {

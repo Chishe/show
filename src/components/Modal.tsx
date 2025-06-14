@@ -394,8 +394,24 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
 
       setRows((prevRows) => {
         const indexToDelete = prevRows.findIndex((row) => row.id === id);
-        const updatedRows = prevRows.filter((r) => r.id !== id);
+        const updatedRows = prevRows.filter((row) => row.id !== id);
+    
+        if (indexToDelete === 0 && updatedRows.length > 0) {
+          updatedRows[0] = {
+            ...updatedRows[0],
+            startTime: "07:35",
+          };
+
+          const { qty, ctTarget } = updatedRows[0];
+          if (qty && ctTarget) {
+            updatedRows[0].endTime = calculateEndTime("07:35", qty, ctTarget);
+          } else {
+            updatedRows[0].endTime = "";
+          }
+        }
+    
         toast.success("Deleted successfully");
+    
         return recalculateRowsFromIndex(updatedRows, indexToDelete);
       });
     } catch (error) {
@@ -405,7 +421,6 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
 
   const remarkeRow = async (id: number) => {
     try {
-      // เรียก API PUT ครั้งแรก
       const res1 = await fetch(`/api/plan-remark/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
         method: "PUT",
         headers: {
@@ -420,7 +435,6 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
         return;
       }
 
-      // เรียก API PUT ครั้งที่สอง (ตัวอย่าง URL อาจเปลี่ยนตาม API จริง)
       const res2 = await fetch(`/api/edit-plan-target/${id}?table=${nametableurl}&date=${encodeURIComponent(dateTime)}`, {
         method: "PUT",
         headers: {
@@ -435,7 +449,6 @@ export default function Modal({ nametableurl, dateTime }: ModalProps) {
         return;
       }
 
-      // ถ้าเรียกสำเร็จทั้ง 2 ครั้ง อัปเดต state
       setRows((prevRows) =>
         prevRows.map(row =>
           row.id === id ? { ...row, remark: "remark" } : row
